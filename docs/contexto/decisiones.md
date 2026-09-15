@@ -68,3 +68,17 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
      - Componentes con bordes curvos suaves (`rounded-3xl`), sombras difusas tenues y píldoras (`rounded-full`) para badges y botones.
      - Ticker editorial de instituciones conectadas y disposición tipo Bento Grid para valor agregado.
 * **Consecuencias**: Interfaz corporativa moderna de estándar B2B SaaS internacional, manteniendo la ergonomía móvil y la identidad riocuartense de BusRío.
+
+---
+
+## [ADR-007] Arquitectura de Variables CSS y Diseño Glassmorphism de Alta Gama (Rama v2)
+* **Fecha y Hora**: 2026-09-15 14:15 UTC-3
+* **Estado**: Aceptado
+* **Contexto**: El usuario requirió elevar la landing page a un estándar visual premium de alta gama ("romper el estilo IA básico") con soporte dinámico e instantáneo de Modo Oscuro (`#0A0B0E`) y Modo Claro (`#F8F9FA`), botones resplandecientes (`btn-glow`), fondos ambientales con desenfoque (`filter: blur(120px)`), tipografía de display `Plus Jakarta Sans` y cuerpo `Inter`, 4 bloques asimétricos alternados, sección de testimonios ("Customer Stories") y footer de 5 columnas.
+* **Decisión**:
+  1. Centralizar el color y superficies en variables CSS `:root` y `html.light` (`--bg-primary`, `--bg-secondary`, `--bg-glass`, `--text-primary`, `--text-secondary`, `--accent`, `--accent-glow`, `--card-bg`, `--card-border`, `--border-color`, `--shadow-elevation`).
+  2. Implementar micro-interacciones espaciales: tarjetas de vidrio esmerilado (`backdrop-filter: blur(16px)`), gradientes de borde sutiles (`border: 1px solid var(--card-border)`) y botones con glow exterior (`box-shadow: 0 4px 20px var(--accent-glow)`).
+  3. Estructurar la sección central con 4 bloques alternados asimétricos (Texto Izquierda / UI Derecha; UI Izquierda / Texto Derecha) para guiar el flujo de lectura.
+  4. Respetar estrictamente los 4 estados de UI (⏳ Loading skeleton, 📭 Empty state, ❌ Error validation, ✅ Success render) en las tarjetas de monitoreo y alertas ciudadanas.
+* **Consecuencias**: Estética de producto SaaS de élite, cero flash de tema no deseado (anti-FOUT en `<head>`), y compatibilidad total con el motor de datos y reglas de negocio de BusRío.
+

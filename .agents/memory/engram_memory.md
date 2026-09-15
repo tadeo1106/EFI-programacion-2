@@ -63,3 +63,21 @@
     * Formulario de alertas y feed en vivo con diseño limpio corporate SaaS.
     * Documentado en ADR-006 en `docs/contexto/decisiones.md`.
 - **Estado**: Finalizado con éxito y verificado.
+
+---
+
+### [2026-09-15] - Arquitectura de Variables CSS y Diseño Glassmorphism de Alta Gama (Rama v2)
+- **ID**: `mem_busrio_v2_highend_redesign`
+- **Tipo**: Implementación High-End UI/UX & CSS Variables System
+- **Alcance**: Rama `v2`, `index.html`, `js/app.js`, `docs/contexto/`
+- **Contenido**:
+  - Implementado sistema de tokens con variables CSS (`--bg-primary`, `--bg-secondary`, `--text-primary`, `--accent`, `--card-bg`, `--border-color`).
+  - Modo Oscuro (`#0A0B0E`) predeterminado con soporte de Modo Claro (`#F8F9FA`) y script anti-FOUT en `<head>`.
+  - Botones con efecto glow radiante (`btn-glow`), fondos ambientales con desenfoque (`ambient-glow`, `blur(120px)`), tarjetas con glassmorphism esmerilado (`glass-card`).
+  - Tipografía jerárquica con títulos display en `Plus Jakarta Sans` y cuerpo en `Inter`.
+  - 4 bloques de características asimétricos y alternados (Texto / UI; UI / Texto).
+  - Sección de testimonios ("Customer Stories") y footer multi-columna de 5 columnas.
+  - Verificación visual de los 4 estados de UI (⏳ Loading skeleton, 📭 Empty state, ❌ Error validation, ✅ Success render).
+  - Documentado en ADR-007 en `docs/contexto/decisiones.md`.
+- **Estado**: Finalizado con éxito y verificado.
+

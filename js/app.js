@@ -1,8 +1,8 @@
 /**
- * BusRío v2 - Application Logic (Lattice-inspired UI/UX)
- * Lógica modular interactiva con estética editorial B2B SaaS:
- * Filtros de garitas en cápsulas pill, renderizado reactivo con 4 estados UI,
- * mapa Leaflet, formulario de alertas ciudadanas y alternancia de tema.
+ * BusRío v2 - Application Logic
+ * Lógica modular interactiva con arquitectura de Variables CSS, estética de alta gama:
+ * Filtros de garitas, renderizado reactivo con 4 estados UI comprobados,
+ * mapa Leaflet con estilizado personalizado, formulario de alertas ciudadanas y switch de tema.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,20 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTheme(isDark) {
       if (isDark) {
         document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
         localStorage.setItem('busrio_theme', 'dark');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-300 text-xs';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-300 text-sm';
         if (themeText) themeText.textContent = 'Claro';
       } else {
         document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
         localStorage.setItem('busrio_theme', 'light');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-stone-600 text-xs';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-blue-600 text-sm';
         if (themeText) themeText.textContent = 'Oscuro';
       }
     }
 
     const savedTheme = localStorage.getItem('busrio_theme');
-    // Por defecto inicia en Modo Claro o el guardado
-    const isDark = savedTheme ? savedTheme === 'dark' : false;
+    // Por defecto inicia en Modo Oscuro (Predeterminado de alta gama)
+    const isDark = savedTheme ? savedTheme === 'dark' : true;
     applyTheme(isDark);
 
     if (themeToggleBtn) {
@@ -97,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3. TABS Y FILTROS POR GARITA (CÁPSULA PILL SEGMENTADA LATTICE)
+     3. TABS Y FILTROS POR GARITA (CÁPSULAS HIGH-END)
      ========================================================================== */
   function initStopFilterTabs() {
     const tabsContainer = document.getElementById('stop-tabs-container');
@@ -123,18 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-stop-id', id);
-    btn.className = `stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] ${
+    btn.className = `stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] ${
       isActive
-        ? 'bg-[#0A6C44] text-white shadow-sm font-semibold scale-[1.02]'
-        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-semibold'
+        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] border border-transparent hover:border-[var(--border-color)]'
     }`;
     btn.innerHTML = `<i class="${iconClass} text-[11px]"></i><span>${label}</span>`;
 
     btn.addEventListener('click', () => {
       document.querySelectorAll('.stop-tab-btn').forEach(b => {
-        b.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800';
+        b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] border border-transparent hover:border-[var(--border-color)]';
       });
-      btn.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] bg-[#0A6C44] text-white shadow-sm scale-[1.02]';
+      btn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] bg-blue-600 text-white shadow-md shadow-blue-500/25';
 
       state.selectedStop = id;
       triggerCardRenderWithLoading();
@@ -193,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     5. RENDERIZADO DE TARJETAS LATTICE (4 ESTADOS UI COMPROBADOS)
+     5. RENDERIZADO DE TARJETAS (4 ESTADOS UI COMPROBADOS)
      ========================================================================== */
   function triggerCardRenderWithLoading() {
     const gridContainer = document.getElementById('lines-grid');
@@ -207,11 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyContainer.classList.add('hidden');
     skeletonContainer.classList.remove('hidden');
 
-    // Transición visual ágil de 180ms
+    // Transición visual ágil de 160ms
     setTimeout(() => {
       skeletonContainer.classList.add('hidden');
       renderCards();
-    }, 180);
+    }, 160);
   }
 
   function initCardGrid() {
@@ -268,94 +270,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createLineCard(line) {
     const article = document.createElement('article');
-    article.className = 'group relative bg-white dark:bg-[#131B2E] border border-stone-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between';
+    article.className = 'group relative glass-card rounded-2xl p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between hover:border-blue-500/40';
 
-    // Estados visuales tipo badge Lattice
-    let statusBadgeColor = 'bg-emerald-50 text-[#0A6C44] border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
-    let statusDotColor = 'bg-[#0A6C44] dark:bg-emerald-400';
+    // Estados visuales tipo badge de alta gama
+    let statusBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    let statusDotColor = 'bg-emerald-500';
     let pulseClass = line.etaMinutes <= 5 ? 'animate-pulse' : '';
 
     if (line.status === 'warning') {
-      statusBadgeColor = 'bg-amber-50 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60';
+      statusBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       statusDotColor = 'bg-amber-500';
     } else if (line.status === 'danger') {
-      statusBadgeColor = 'bg-rose-50 text-rose-800 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60';
+      statusBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       statusDotColor = 'bg-rose-500';
     }
 
     article.innerHTML = `
       <div>
         <!-- Fila Superior: Badge de Línea + ETA Pill -->
-        <div class="flex items-start justify-between gap-3 mb-5">
+        <div class="flex items-start justify-between gap-3 mb-4">
           <div class="flex items-center gap-3">
-            <span class="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full font-heading font-bold text-xs text-white shadow-sm ${line.bgClass}">
+            <span class="inline-flex items-center justify-center px-3 py-1 rounded-lg font-heading font-bold text-xs text-white shadow-sm ${line.bgClass}">
               ${line.number}
             </span>
             <div>
-              <h3 class="font-heading font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-[#0A6C44] dark:group-hover:text-emerald-400 transition-colors">
+              <h3 class="font-heading font-bold text-[var(--text-primary)] text-sm sm:text-base leading-tight group-hover:text-blue-500 transition-colors">
                 ${line.name}
               </h3>
-              <span class="text-[11px] text-stone-500 dark:text-slate-400 font-medium">Frecuencia: ${line.frequency}</span>
+              <span class="text-[11px] text-[var(--text-muted)] font-medium">Frecuencia: ${line.frequency}</span>
             </div>
           </div>
 
           <!-- Chip de Arribo (ETA) -->
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${pulseClass} bg-stone-100 text-stone-900 dark:bg-slate-800 dark:text-emerald-300 border border-stone-200 dark:border-slate-700">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${pulseClass} bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
             <span class="w-2 h-2 rounded-full ${statusDotColor}"></span>
             <span>${line.etaMinutes} min</span>
           </div>
         </div>
 
         <!-- Trayecto y Garita -->
-        <div class="space-y-2.5 py-4 border-y border-stone-100 dark:border-slate-800/80 my-2">
-          <div class="flex items-start gap-2.5 text-xs">
-            <div class="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-[#0A6C44] dark:text-emerald-400 shrink-0 mt-0.5">
+        <div class="space-y-2 py-3 border-y border-[var(--border-color)] my-3 text-xs">
+          <div class="flex items-start gap-2.5">
+            <div class="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 mt-0.5">
               <i class="fa-solid fa-location-dot text-[10px]"></i>
             </div>
             <div>
-              <span class="text-[11px] text-stone-400 dark:text-slate-500 block font-medium">Parada:</span>
-              <strong class="text-slate-800 dark:text-slate-200 font-semibold">${line.stopName}</strong>
+              <span class="text-[10px] text-[var(--text-muted)] block font-medium">Parada:</span>
+              <strong class="text-[var(--text-primary)] font-semibold">${line.stopName}</strong>
             </div>
           </div>
-          <div class="flex items-start gap-2.5 text-xs">
-            <div class="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+          <div class="flex items-start gap-2.5">
+            <div class="w-5 h-5 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
               <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </div>
             <div>
-              <span class="text-[11px] text-stone-400 dark:text-slate-500 block font-medium">Destino:</span>
-              <span class="text-slate-700 dark:text-slate-300 font-medium">${line.direction}</span>
+              <span class="text-[10px] text-[var(--text-muted)] block font-medium">Destino:</span>
+              <span class="text-[var(--text-secondary)] font-medium">${line.direction}</span>
             </div>
           </div>
         </div>
 
         <!-- Chips de Estado y Accesibilidad -->
-        <div class="flex flex-wrap items-center gap-2 mt-4 mb-5">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${statusBadgeColor}">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${statusBadgeColor}">
             <span class="w-1.5 h-1.5 rounded-full ${statusDotColor}"></span>
             <span>${line.statusLabel}</span>
           </span>
 
           ${line.accessible ? `
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 dark:bg-slate-800 dark:text-slate-300 border border-stone-200 dark:border-slate-700" title="Unidad con rampa automática">
-              <i class="fa-solid fa-wheelchair text-[11px] text-[#0A6C44] dark:text-emerald-400"></i>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-color)]" title="Unidad con rampa automática">
+              <i class="fa-solid fa-wheelchair text-[11px] text-blue-500"></i>
               <span>Rampa accesible</span>
             </span>
           ` : `
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs text-stone-400 dark:text-slate-500 border border-stone-200/70 dark:border-slate-800" title="Piso convencional">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] text-[var(--text-muted)] border border-[var(--border-color)]" title="Piso convencional">
               <span>Piso Convencional</span>
             </span>
           `}
         </div>
       </div>
 
-      <!-- Botones de Acción Estilo Lattice -->
+      <!-- Botones de Acción Estilo High-End -->
       <div class="flex items-center gap-2 pt-2">
-        <button type="button" class="view-route-btn flex-1 min-h-[44px] px-4 py-2.5 bg-stone-900 hover:bg-[#0A6C44] text-white dark:bg-slate-800 dark:hover:bg-[#0A6C44] dark:text-white rounded-full text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm" data-line-id="${line.id}">
+        <button type="button" class="view-route-btn flex-1 min-h-[38px] px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2" data-line-id="${line.id}">
           <i class="fa-solid fa-route text-xs"></i>
           <span>Ver Recorrido</span>
         </button>
 
-        <button type="button" class="locate-map-btn min-h-[44px] px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full text-xs font-semibold transition-all duration-200 flex items-center justify-center border border-stone-200 dark:border-slate-700" title="Localizar en Mapa" data-line-id="${line.id}">
+        <button type="button" class="locate-map-btn min-h-[38px] px-3 py-2 bg-[var(--bg-primary)] hover:bg-[var(--border-color)] text-[var(--text-primary)] rounded-xl text-xs font-semibold transition-all flex items-center justify-center border border-[var(--border-color)]" title="Localizar en Mapa" data-line-id="${line.id}">
           <i class="fa-solid fa-map-location-dot"></i>
           <span class="sr-only">Localizar en mapa</span>
         </button>
@@ -400,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-          <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-[#0A6C44] text-white shadow-lg border-2 border-white ring-2 ring-[#0A6C44]/40 cursor-pointer transition-transform hover:scale-110">
+          <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white ring-2 ring-blue-500/40 cursor-pointer transition-transform hover:scale-110">
             <i class="fa-solid fa-bus text-xs"></i>
           </div>
         `,
@@ -411,16 +413,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const marker = L.marker(stop.coords, { icon: customIcon }).addTo(state.map);
 
       const popupContent = `
-        <div class="p-2.5 font-sans">
-          <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-[#0A6C44] bg-emerald-50 px-2 py-0.5 rounded-full mb-1">${stop.type}</span>
-          <h4 class="font-heading font-bold text-slate-900 text-sm mt-1">${stop.name}</h4>
-          <p class="text-xs text-slate-500 mt-1">${stop.address}</p>
-          <div class="mt-2.5 pt-2.5 border-t border-slate-200">
-            <span class="text-[11px] font-semibold text-slate-700">Líneas en esta parada:</span>
+        <div class="p-2 font-sans">
+          <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full mb-1">${stop.type}</span>
+          <h4 class="font-heading font-bold text-[var(--text-primary)] text-sm mt-1">${stop.name}</h4>
+          <p class="text-xs text-[var(--text-secondary)] mt-1">${stop.address}</p>
+          <div class="mt-2.5 pt-2 border-t border-[var(--border-color)]">
+            <span class="text-[11px] font-semibold text-[var(--text-primary)]">Líneas en esta parada:</span>
             <div class="flex flex-wrap gap-1 mt-1.5">
               ${stop.lines.map(lineId => {
                 const l = BUSRIO_DATA.lines.find(item => item.id === lineId);
-                return l ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
+                return l ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
               }).join('')}
             </div>
           </div>
@@ -469,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. MODAL DE DETALLES DE RECORRIDO (LATTICE DRAWER STYLE)
+     7. MODAL DE DETALLES DE RECORRIDO (GLASS DRAWER)
      ========================================================================== */
   function initModal() {
     const modal = document.getElementById('route-modal');
@@ -496,8 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('route-modal');
     if (!modal) return;
 
-    document.getElementById('modal-line-number').textContent = line.number;
-    document.getElementById('modal-line-number').className = `px-3.5 py-1.5 rounded-full text-white font-heading font-bold text-xs ${line.bgClass}`;
+    const modalLineNumber = document.getElementById('modal-line-number');
+    if (modalLineNumber) {
+      modalLineNumber.textContent = line.number;
+      modalLineNumber.className = `px-3 py-1 rounded-lg text-white font-heading font-bold text-xs ${line.bgClass}`;
+    }
+
     document.getElementById('modal-line-title').textContent = line.name;
     document.getElementById('modal-line-direction').textContent = line.direction;
     document.getElementById('modal-line-desc').textContent = line.description;
@@ -514,12 +520,12 @@ document.addEventListener('DOMContentLoaded', () => {
         stopItem.className = 'relative flex items-center gap-4 pb-4 last:pb-0';
         stopItem.innerHTML = `
           <div class="relative z-10 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-            isFirst ? 'bg-[#0A6C44] text-white' : isLast ? 'bg-rose-500 text-white' : 'bg-stone-200 dark:bg-slate-700 text-stone-700 dark:text-slate-300'
+            isFirst ? 'bg-blue-600 text-white shadow-sm' : isLast ? 'bg-rose-500 text-white shadow-sm' : 'bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)]'
           }">
             ${idx + 1}
           </div>
-          <span class="text-xs font-medium ${isFirst || isLast ? 'font-bold text-slate-900 dark:text-white' : 'text-stone-600 dark:text-slate-300'}">
-            ${stopName} ${isFirst ? '<span class="text-[11px] text-[#0A6C44] dark:text-emerald-400 font-normal">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-[11px] text-rose-600 dark:text-rose-400 font-normal">(Destino)</span>' : ''}
+          <span class="text-xs ${isFirst || isLast ? 'font-bold text-[var(--text-primary)]' : 'text-[var(--text-secondary)] font-medium'}">
+            ${stopName} ${isFirst ? '<span class="text-[10px] text-blue-500 font-normal">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-[10px] text-rose-500 font-normal">(Destino)</span>' : ''}
           </span>
         `;
         stopsListContainer.appendChild(stopItem);
@@ -540,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     8. ALERTA CIUDADANA Y FORMULARIO (LATTICE PILL CARDS)
+     8. ALERTA CIUDADANA Y FORMULARIO
      ========================================================================== */
   function initAlertsFeed() {
     const feedContainer = document.getElementById('alerts-feed-container');
@@ -566,27 +572,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createAlertCard(alert) {
     const item = document.createElement('div');
-    const badgeColor = alert.type === 'danger' ? 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60' :
-                       alert.type === 'warning' ? 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60' :
-                       'bg-emerald-50 text-[#0A6C44] border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
+    const badgeColor = alert.type === 'danger' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                       alert.type === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                       'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     const dotColor = alert.type === 'danger' ? 'bg-rose-500' :
-                     alert.type === 'warning' ? 'bg-amber-500' : 'bg-[#0A6C44]';
+                     alert.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500';
 
-    item.className = 'p-5 rounded-2xl bg-white dark:bg-[#131B2E] border border-stone-200/90 dark:border-slate-800 shadow-sm transition-all hover:border-[#0A6C44]/40';
+    item.className = 'p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] transition-all hover:border-blue-500/40 text-xs';
     item.innerHTML = `
-      <div class="flex items-start justify-between gap-3 mb-2.5">
-        <div class="flex items-center gap-2.5">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor}">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
             <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
             <span>${alert.line}</span>
           </span>
-          <h4 class="font-heading font-bold text-slate-900 dark:text-white text-sm">${alert.title}</h4>
+          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs">${alert.title}</h4>
         </div>
-        <span class="text-[11px] text-stone-400 font-medium whitespace-nowrap">${alert.time}</span>
+        <span class="text-[10px] text-[var(--text-muted)] font-medium whitespace-nowrap">${alert.time}</span>
       </div>
-      <p class="text-xs text-stone-600 dark:text-slate-300 mb-3 leading-relaxed">${alert.description}</p>
-      <div class="flex items-center justify-between text-[11px] text-stone-500 dark:text-slate-400 pt-2.5 border-t border-stone-100 dark:border-slate-800">
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#0A6C44]"></i>${alert.stop}</span>
+      <p class="text-[11px] text-[var(--text-secondary)] mb-2 leading-relaxed">${alert.description}</p>
+      <div class="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-2 border-t border-[var(--border-color)]">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-blue-500"></i>${alert.stop}</span>
         <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-500"></i>${alert.author}</span>
       </div>
     `;
@@ -644,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
         description: commentInput.value.trim() || `Reporte de ${typeSelect.value} en garita de Río Cuarto emitido desde la PWA.`
       };
 
+      // Estado 4: ✅ SUCCESS - Agregar al store y al feed
       BUSRIO_DATA.alerts.unshift(newAlert);
       const feedContainer = document.getElementById('alerts-feed-container');
       if (feedContainer) {
@@ -657,10 +664,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showFieldError(field, message) {
     field.classList.add('border-rose-500', 'focus:ring-rose-500');
-    field.classList.remove('border-stone-300', 'dark:border-slate-700');
+    field.classList.remove('border-[var(--border-color)]');
     const parent = field.parentElement;
     const errorMsg = document.createElement('p');
-    errorMsg.className = 'field-error-text text-rose-500 text-xs mt-1 font-medium';
+    errorMsg.className = 'field-error-text text-rose-500 text-[11px] mt-1 font-medium';
     errorMsg.textContent = message;
     parent.appendChild(errorMsg);
   }
@@ -669,12 +676,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.field-error-text').forEach(el => el.remove());
     document.querySelectorAll('#report-form select, #report-form input').forEach(field => {
       field.classList.remove('border-rose-500', 'focus:ring-rose-500');
-      field.classList.add('border-stone-300', 'dark:border-slate-700');
+      field.classList.add('border-[var(--border-color)]');
     });
   }
 
   /* ==========================================================================
-     9. TOAST DE NOTIFICACIÓN FLOTANTE (ESTILO PILL LATTICE)
+     9. TOAST DE NOTIFICACIÓN FLOTANTE (ESTILO HIGH-END PILL)
      ========================================================================== */
   function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
@@ -686,14 +693,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const toast = document.createElement('div');
-    const bgClass = type === 'success' ? 'bg-[#0A6C44] text-white shadow-emerald-950/20' :
-                    type === 'error' ? 'bg-rose-600 text-white shadow-rose-950/20' :
-                    'bg-stone-900 text-white dark:bg-slate-800 shadow-black/20';
+    const bgClass = type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-950/30' :
+                    type === 'error' ? 'bg-rose-600 text-white shadow-rose-950/30' :
+                    'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-950/30';
     const icon = type === 'success' ? 'fa-solid fa-circle-check' :
                  type === 'error' ? 'fa-solid fa-circle-xmark' :
                  'fa-solid fa-circle-info';
 
-    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-full shadow-xl font-sans text-xs font-semibold tracking-wide transition-all duration-300 translate-y-4 opacity-0 border border-white/10 ${bgClass}`;
+    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl font-sans text-xs font-bold tracking-wide transition-all duration-300 translate-y-4 opacity-0 border border-white/10 backdrop-blur-md ${bgClass}`;
     toast.innerHTML = `
       <i class="${icon} text-sm"></i>
       <span>${message}</span>
