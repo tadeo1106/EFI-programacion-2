@@ -1,15 +1,14 @@
 /**
- * BusRío v2 - Application Logic
- * Centro de Control de Colectivos en Tiempo Real (Río Cuarto)
- * - Monitor y Mapa interactivo Leaflet unificados en una sola vista de comando.
- * - Cero saltos de layout (CLS = 0) al filtrar garitas o buscar líneas.
- * - Selector de vista móvil (Lista <-> Mapa) sin scroll infinito.
- * - Toasts 100% responsivos adaptados a pantallas estrechas de celular.
- * - Sistema bimodal con Variables CSS persistente en LocalStorage.
+ * BusRío - Sistema de Tránsito Urbano en Tiempo Real (Río Cuarto)
+ * Lógica modular interactiva bajo sistema de diseño utilitario y brutalista:
+ * - Centro de Control unificado con mapa Leaflet y panel de ramales.
+ * - Cero saltos de layout (CLS = 0) con persistencia de dimensiones.
+ * - Soporte bimodal (Modo Oscuro por defecto / Modo Claro) con variables CSS.
+ * - Notificaciones y controles optimizados para celulares y escritorios.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Estado local de la aplicación
+  // Estado central de la aplicación
   const state = {
     selectedStop: 'all',
     searchQuery: '',
@@ -19,13 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     activeLineId: null
   };
 
-  // Inicialización de subsistemas
+  // Inicialización de componentes
   initTheme();
   initMobileMenu();
   initMobileViewSwitcher();
   initStopFilterTabs();
   initSearch();
-  initHeroQuickNodes();
+  initHeroPlanner();
   initCardGrid();
   initAlertsFeed();
   initAlertForm();
@@ -45,17 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');
         localStorage.setItem('busrio_theme', 'dark');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-300 text-sm';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400 text-xs';
       } else {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
         localStorage.setItem('busrio_theme', 'light');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-blue-600 text-sm';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-slate-700 text-xs';
       }
     }
 
     const savedTheme = localStorage.getItem('busrio_theme');
-    // Por defecto inicia en Modo Oscuro de alta gama
+    // Por defecto inicia en Modo Oscuro utilitario
     const isDark = savedTheme ? savedTheme === 'dark' : true;
     applyTheme(isDark);
 
@@ -64,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentlyDark = document.documentElement.classList.contains('dark');
         applyTheme(!currentlyDark);
         showToast(
-          !currentlyDark ? 'Modo Oscuro activado 🌙' : 'Modo Claro activado ☀️',
+          !currentlyDark ? 'Modo Oscuro activado' : 'Modo Claro activado',
           'info'
         );
       });
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     2. MENÚ HAMBURGUESA RESPONSIVE
+     2. MENÚ MÓVIL
      ========================================================================== */
   function initMobileMenu() {
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -101,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3. ALTERNADOR DE VISTA MÓVIL (LISTA <-> MAPA)
+     3. ALTERNADOR DE VISTA EN CELULARES (LISTA <-> MAPA)
      ========================================================================== */
   function initMobileViewSwitcher() {
     const btnList = document.getElementById('mobile-view-list');
@@ -134,16 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
       mapCol.classList.add('hidden');
       mapCol.classList.remove('block');
 
-      btnList.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
-      btnMap.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+      btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
+      btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
     } else {
       listCol.classList.add('hidden');
       listCol.classList.remove('block');
       mapCol.classList.remove('hidden');
       mapCol.classList.add('block');
 
-      btnMap.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
-      btnList.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+      btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
+      btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
 
       if (state.map) {
         setTimeout(() => state.map.invalidateSize(), 50);
@@ -152,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     4. TABS Y FILTROS POR GARITA (PÍLDORAS DESLIZABLES)
+     4. FILTROS POR GARITA (PÍLDORAS UTILITARIAS)
      ========================================================================== */
   function initStopFilterTabs() {
     const tabsContainer = document.getElementById('stop-tabs-container');
@@ -160,11 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tabsContainer.innerHTML = '';
 
-    // Botón "Todas las Paradas"
+    // Botón "Todas las Garitas"
     const allBtn = createTabButton('all', 'Todas las Garitas', 'fa-solid fa-layer-group', true);
     tabsContainer.appendChild(allBtn);
 
-    // Botones por cada parada crítica de Río Cuarto
+    // Botones por cada garita
     BUSRIO_DATA.stops.forEach(stop => {
       const icon = stop.id === 'hospital-padua' ? 'fa-solid fa-hospital' :
                    stop.id === 'unrc-campus' ? 'fa-solid fa-graduation-cap' :
@@ -180,10 +179,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-stop-id', id);
-    btn.className = `stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] ${
+    btn.className = `stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] ${
       isActive
-        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-semibold'
-        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-blue-500/30'
+        ? 'bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)]'
+        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium'
     }`;
     btn.innerHTML = `<i class="${iconClass} text-[11px]"></i><span>${label}</span>`;
 
@@ -196,17 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function selectStopTab(id) {
     document.querySelectorAll('.stop-tab-btn').forEach(b => {
-      b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-blue-500/30';
+      b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium';
     });
     const targetBtn = document.querySelector(`.stop-tab-btn[data-stop-id="${id}"]`);
     if (targetBtn) {
-      targetBtn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] bg-blue-600 text-white shadow-md shadow-blue-500/25';
+      targetBtn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)]';
     }
 
     state.selectedStop = id;
     triggerCardRenderWithLoading();
 
-    // Centrado suave en el mapa al seleccionar parada
+    // Centrado en el mapa al seleccionar garita
     if (id !== 'all' && state.map) {
       const targetStop = BUSRIO_DATA.stops.find(s => s.id === id);
       if (targetStop) {
@@ -221,32 +220,50 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     5. BÚSQUEDA RÁPIDA (HERO Y MONITOR)
-     ========================================================================= */
-  function initSearch() {
-    const heroSearchInput = document.getElementById('hero-search-input');
+     5. PLANIFICADOR RÁPIDO DEL HERO Y BÚSQUEDA
+     ========================================================================== */
+  function initHeroPlanner() {
     const heroSearchBtn = document.getElementById('hero-search-btn');
-    const monitorSearchInput = document.getElementById('monitor-search-input');
+    const heroLineSelect = document.getElementById('hero-line-select');
+    const heroStopSelect = document.getElementById('hero-stop-select');
 
-    function executeSearch(query) {
-      state.searchQuery = query.toLowerCase().trim();
-      if (monitorSearchInput) monitorSearchInput.value = query;
-      triggerCardRenderWithLoading();
+    if (!heroSearchBtn) return;
 
-      const monitorSection = document.getElementById('monitor');
-      if (monitorSection) {
-        monitorSection.scrollIntoView({ behavior: 'smooth' });
+    heroSearchBtn.addEventListener('click', () => {
+      const lineVal = heroLineSelect ? heroLineSelect.value : '';
+      const stopVal = heroStopSelect ? heroStopSelect.value : 'all';
+
+      // Aplicar filtro de garita
+      selectStopTab(stopVal || 'all');
+
+      // Si seleccionó una línea específica
+      if (lineVal) {
+        const lineObj = BUSRIO_DATA.lines.find(l => l.id === lineVal);
+        if (lineObj) {
+          state.searchQuery = lineObj.number.toLowerCase();
+          const monitorSearchInput = document.getElementById('monitor-search-input');
+          if (monitorSearchInput) monitorSearchInput.value = lineObj.number;
+          
+          triggerCardRenderWithLoading();
+          setTimeout(() => {
+            focusLineOnMap(lineObj, false);
+          }, 300);
+        }
+      } else {
+        state.searchQuery = '';
+        const monitorSearchInput = document.getElementById('monitor-search-input');
+        if (monitorSearchInput) monitorSearchInput.value = '';
+        triggerCardRenderWithLoading();
       }
-    }
 
-    if (heroSearchBtn && heroSearchInput) {
-      heroSearchBtn.addEventListener('click', () => {
-        executeSearch(heroSearchInput.value);
-      });
-      heroSearchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') executeSearch(heroSearchInput.value);
-      });
-    }
+      // Desplazar suavemente hacia el Centro de Control
+      document.getElementById('monitor')?.scrollIntoView({ behavior: 'smooth' });
+      showToast('Filtro de tránsito aplicado al Centro de Control', 'info');
+    });
+  }
+
+  function initSearch() {
+    const monitorSearchInput = document.getElementById('monitor-search-input');
 
     if (monitorSearchInput) {
       monitorSearchInput.addEventListener('input', (e) => {
@@ -256,21 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function initHeroQuickNodes() {
-    document.querySelectorAll('.quick-node-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const stopId = btn.getAttribute('data-stop');
-        if (stopId) {
-          selectStopTab(stopId);
-          document.getElementById('monitor')?.scrollIntoView({ behavior: 'smooth' });
-        }
-      });
-    });
-  }
-
   /* ==========================================================================
      6. RENDERIZADO DE TARJETAS (ESTABILIDAD TOTAL DE TAMAÑO - CLS = 0)
-     ========================================================================= */
+     ========================================================================== */
   function triggerCardRenderWithLoading() {
     const gridContainer = document.getElementById('lines-grid');
     const skeletonContainer = document.getElementById('lines-skeleton');
@@ -278,16 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!gridContainer || !skeletonContainer || !emptyContainer) return;
 
-    // Estado 1: ⏳ LOADING (Mantiene dimensiones del contenedor padre sin saltos)
+    // Estado 1: ⏳ LOADING
     gridContainer.classList.add('hidden');
     emptyContainer.classList.add('hidden');
     skeletonContainer.classList.remove('hidden');
 
-    // Transición visual ágil y predecible de 120ms
+    // Transición ágil de 100ms
     setTimeout(() => {
       skeletonContainer.classList.add('hidden');
       renderCards();
-    }, 120);
+    }, 100);
   }
 
   function initCardGrid() {
@@ -318,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (counterBadge) counterBadge.textContent = `${totalCount} ${totalCount === 1 ? 'Línea' : 'Líneas'}`;
     if (mobileCounter) mobileCounter.textContent = totalCount;
 
-    // Estado 2: 📭 EMPTY (Centrado dentro del scroll sin achicar el contenedor)
+    // Estado 2: 📭 EMPTY (Centrado dentro del scroll de altura fija)
     if (filteredLines.length === 0) {
       gridContainer.classList.add('hidden');
       emptyContainer.classList.remove('hidden');
@@ -351,77 +356,72 @@ document.addEventListener('DOMContentLoaded', () => {
     const article = document.createElement('article');
     const isActive = state.activeLineId === line.id;
 
-    article.className = `line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border ${
+    article.className = `line-card transit-card p-3 sm:p-3.5 transition-all cursor-pointer ${
       isActive
-        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-500/5'
-        : 'border-[var(--card-border)] hover:border-blue-500/40'
+        ? 'border-[var(--accent-transit)] ring-1 ring-[var(--accent-transit)] bg-[var(--accent-transit)]/5'
+        : 'border-[var(--border-color)] hover:border-[var(--border-hover)]'
     }`;
     article.setAttribute('data-line-id', line.id);
 
-    // Estados visuales badges
-    let statusBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    let statusDotColor = 'bg-emerald-500';
+    // Estados utilitarios
+    let statusBadgeColor = 'border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)]';
     let statusText = 'Normal';
     let pulseClass = line.etaMinutes <= 5 ? 'animate-pulse' : '';
 
     if (line.status === 'warning') {
-      statusBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      statusDotColor = 'bg-amber-500';
+      statusBadgeColor = 'border border-amber-500/40 bg-amber-500/10 text-amber-400';
       statusText = 'Demora';
     } else if (line.status === 'danger') {
-      statusBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      statusDotColor = 'bg-rose-500';
+      statusBadgeColor = 'border border-[var(--alert-soft-border)] bg-[var(--alert-soft-bg)] text-[var(--alert-soft)]';
       statusText = 'Desvío';
     }
 
     article.innerHTML = `
-      <!-- Fila 1: Badge Línea + Nombre + ETA -->
+      <!-- Fila 1: Línea Badge + Nombre + ETA Monospace -->
       <div class="flex items-center justify-between gap-2 mb-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-lg font-heading font-bold text-xs text-white shadow-sm shrink-0 ${line.bgClass}">
-            ${line.number}
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
+            ${line.number.toUpperCase()}
           </span>
           <div class="min-w-0">
-            <h4 class="font-heading font-bold text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-blue-500 transition-colors leading-tight truncate">
+            <h4 class="font-heading font-bold text-xs sm:text-sm text-[var(--text-primary)] leading-tight truncate">
               ${line.name}
             </h4>
-            <span class="text-[10px] text-[var(--text-muted)] font-medium">Cada ${line.frequency.replace('Cada ', '')}</span>
+            <span class="text-[10px] font-mono text-[var(--text-muted)]">Cada ${line.frequency.replace('Cada ', '')}</span>
           </div>
         </div>
 
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${pulseClass} bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
-          <span class="w-1.5 h-1.5 rounded-full ${statusDotColor}"></span>
-          <span>${line.etaMinutes} min</span>
+        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] font-bold ${pulseClass} bg-[var(--bg-main)] text-[var(--accent-transit)] border border-[var(--border-color)] shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"></span>
+          <span>${line.etaMinutes} MIN</span>
         </div>
       </div>
 
-      <!-- Fila 2: Garita próxima y destino -->
-      <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mb-2.5 bg-[var(--bg-primary)]/80 px-2.5 py-1.5 rounded-lg border border-[var(--border-color)]">
-        <i class="fa-solid fa-location-dot text-blue-500 text-[10px] shrink-0"></i>
-        <span class="truncate">Garita: <strong class="text-[var(--text-primary)]">${line.stopName}</strong></span>
+      <!-- Fila 2: Garita próxima -->
+      <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mb-2.5 bg-[var(--bg-main)] px-2.5 py-1.5 rounded border border-[var(--border-color)]">
+        <i class="fa-solid fa-location-dot text-[var(--accent-transit)] text-[10px] shrink-0"></i>
+        <span class="truncate font-sans">Garita: <strong class="text-[var(--text-primary)] font-medium">${line.stopName}</strong></span>
       </div>
 
-      <!-- Fila 3: Chips de Estado y Acciones -->
-      <div class="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
+      <!-- Fila 3: Estado y Botones de Acción -->
+      <div class="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] font-mono text-[11px]">
         <div class="flex items-center gap-1.5">
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusBadgeColor}">
-            <span class="w-1 h-1 rounded-full ${statusDotColor}"></span>
-            <span>${statusText}</span>
+          <span class="px-2 py-0.5 rounded font-mono text-[10px] font-semibold ${statusBadgeColor}">
+            ${statusText}
           </span>
-
           ${line.accessible ? `
-            <span class="p-1 text-blue-500 text-xs" title="Unidad con rampa accesible">
+            <span class="text-[var(--accent-transit)] text-xs" title="Unidad con rampa accesible">
               <i class="fa-solid fa-wheelchair"></i>
             </span>
           ` : ''}
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button type="button" class="locate-line-btn px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm" data-line-id="${line.id}" title="Trazar recorrido en el mapa">
+          <button type="button" class="locate-line-btn px-2.5 py-1 rounded bg-[var(--accent-transit)] text-slate-950 font-bold transition-all hover:bg-[var(--accent-transit-hover)] flex items-center gap-1" data-line-id="${line.id}">
             <i class="fa-solid fa-map text-[10px]"></i>
             <span>Trazar</span>
           </button>
-          <button type="button" class="view-route-btn px-2.5 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--border-color)] text-[var(--text-primary)] text-[11px] font-semibold border border-[var(--border-color)] transition-all flex items-center gap-1" data-line-id="${line.id}" title="Ver itinerario completo de paradas">
+          <button type="button" class="view-route-btn px-2 py-1 rounded bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] transition-all hover:border-[var(--border-hover)] flex items-center gap-1" data-line-id="${line.id}">
             <i class="fa-solid fa-list-ol text-[10px]"></i>
             <span>Paradas</span>
           </button>
@@ -429,14 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // Clic en toda la tarjeta selecciona y enfoca la línea en el mapa
+    // Clic en toda la tarjeta selecciona la línea en el mapa
     article.addEventListener('click', (e) => {
-      // Si hizo clic en "Paradas", abrimos el modal
       if (e.target.closest('.view-route-btn')) {
         openLineModal(line);
         return;
       }
-      // En cualquier otro caso, trazamos en el mapa
       focusLineOnMap(line, true);
     });
 
@@ -444,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. MAPA INTERACTIVO LEAFLET Y SINCRONIZACIÓN
+     7. MAPA LEAFLET RÍGIDO Y SINCRONIZACIÓN
      ========================================================================== */
   function initLeafletMap() {
     const mapContainer = document.getElementById('leaflet-map');
@@ -467,27 +465,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-          <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white ring-2 ring-blue-500/40 cursor-pointer transition-transform hover:scale-110">
-            <i class="fa-solid fa-bus text-[11px]"></i>
+          <div class="relative flex items-center justify-center w-6 h-6 rounded-md bg-[var(--accent-transit)] text-slate-950 shadow border border-black/30 cursor-pointer transition-transform hover:scale-110 font-bold">
+            <i class="fa-solid fa-bus text-[10px]"></i>
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
 
       const marker = L.marker(stop.coords, { icon: customIcon }).addTo(state.map);
 
       const popupContent = `
         <div class="p-1 font-sans text-xs">
-          <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full mb-1">${stop.type}</span>
-          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs mt-1">${stop.name}</h4>
-          <p class="text-[11px] text-[var(--text-secondary)] mt-0.5">${stop.address}</p>
-          <div class="mt-2 pt-2 border-t border-[var(--border-color)]">
-            <span class="text-[10px] font-semibold text-[var(--text-primary)] block mb-1">Líneas en esta garita:</span>
+          <span class="inline-block font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--accent-transit)] mb-0.5">${stop.type}</span>
+          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs">${stop.name}</h4>
+          <p class="text-[11px] text-[var(--text-secondary)] mt-0.5 font-sans">${stop.address}</p>
+          <div class="mt-2 pt-1.5 border-t border-[var(--border-color)]">
+            <span class="font-mono text-[10px] font-bold text-[var(--text-primary)] block mb-1 uppercase">Ramales en Garita:</span>
             <div class="flex flex-wrap gap-1">
               ${stop.lines.map(lineId => {
                 const l = BUSRIO_DATA.lines.find(item => item.id === lineId);
-                return l ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
+                return l ? `<span class="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold bg-[var(--border-color)] text-[var(--text-primary)]">${l.number}</span>` : '';
               }).join('')}
             </div>
           </div>
@@ -496,19 +494,18 @@ document.addEventListener('DOMContentLoaded', () => {
       marker.bindPopup(popupContent);
       state.stopMarkers[stop.id] = marker;
 
-      // Al hacer clic en el marcador, sincroniza con las líneas que pasan por allí
       marker.on('click', () => {
         selectStopTab(stop.id);
       });
     });
 
-    // Renderizado de polilíneas de las líneas
+    // Renderizado de polilíneas
     BUSRIO_DATA.lines.forEach(line => {
       if (line.routeCoords && line.routeCoords.length > 0) {
         const polyline = L.polyline(line.routeCoords, {
           color: line.color,
           weight: 4,
-          opacity: 0.75,
+          opacity: 0.8,
           dashArray: line.status === 'danger' ? '6, 6' : null
         }).addTo(state.map);
 
@@ -527,12 +524,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resetViewBtn) {
       resetViewBtn.addEventListener('click', () => {
         clearLineFocus();
-        state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 1 });
+        state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 0.8 });
         showToast('Mapa recentrado en Río Cuarto', 'info');
       });
     }
 
-    // Botón de Limpiar Enfoque de Ruta
+    // Botón Limpiar Ruta
     const clearRouteBtn = document.getElementById('clear-route-focus-btn');
     if (clearRouteBtn) {
       clearRouteBtn.addEventListener('click', () => {
@@ -550,30 +547,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.activeLineId = line.id;
 
-    // Resaltar visualmente la tarjeta activa en la lista
+    // Resaltar tarjeta seleccionada
     document.querySelectorAll('.line-card').forEach(card => {
       const cardId = card.getAttribute('data-line-id');
       if (cardId === line.id) {
-        card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-blue-500 ring-1 ring-blue-500 bg-blue-500/5';
+        card.className = 'line-card transit-card p-3 sm:p-3.5 transition-all cursor-pointer border-[var(--accent-transit)] ring-1 ring-[var(--accent-transit)] bg-[var(--accent-transit)]/5';
       } else {
-        card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-[var(--card-border)] hover:border-blue-500/40';
+        card.className = 'line-card transit-card p-3 sm:p-3.5 transition-all cursor-pointer border-[var(--border-color)] hover:border-[var(--border-hover)]';
       }
     });
 
-    // Resaltar la polilínea activa y atenuar las demás
+    // Resaltar la polilínea activa
     Object.keys(state.routeLayers).forEach(id => {
       const layer = state.routeLayers[id];
       if (id === line.id) {
         layer.setStyle({ weight: 6, opacity: 1.0 });
         layer.bringToFront();
       } else {
-        layer.setStyle({ weight: 3, opacity: 0.25 });
+        layer.setStyle({ weight: 2.5, opacity: 0.2 });
       }
     });
 
-    // Ajustar zoom y encuadre a la línea
+    // Encuadrar el mapa a la traza
     if (state.routeLayers[line.id]) {
-      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [35, 35] });
+      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [30, 30] });
     }
 
     // Actualizar banner flotante en el mapa
@@ -583,45 +580,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (banner && badge && text) {
       badge.textContent = line.number;
-      badge.className = `px-2 py-0.5 rounded text-[10px] font-bold text-white shrink-0 ${line.bgClass}`;
       text.textContent = line.name;
       banner.classList.remove('hidden');
     }
 
-    // En celular, si es necesario, cambiar automáticamente a la pestaña de mapa
+    // En celular, si aplica, cambiar al mapa
     if (autoSwitchMobile && window.innerWidth < 1024) {
       switchMobileView('map');
     }
 
-    showToast(`Mostrando recorrido de ${line.number}`, 'info');
+    showToast(`Trazando recorrido: ${line.number}`, 'info');
   }
 
   function clearLineFocus() {
     state.activeLineId = null;
 
-    // Restaurar estilos de tarjetas
     document.querySelectorAll('.line-card').forEach(card => {
-      card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-[var(--card-border)] hover:border-blue-500/40';
+      card.className = 'line-card transit-card p-3 sm:p-3.5 transition-all cursor-pointer border-[var(--border-color)] hover:border-[var(--border-hover)]';
     });
 
-    // Restaurar estilos de todas las polilíneas
     BUSRIO_DATA.lines.forEach(line => {
       if (state.routeLayers[line.id]) {
         state.routeLayers[line.id].setStyle({
           weight: 4,
-          opacity: 0.75,
+          opacity: 0.8,
           color: line.color
         });
       }
     });
 
-    // Ocultar banner flotante
     const banner = document.getElementById('active-route-banner');
     if (banner) banner.classList.add('hidden');
   }
 
   /* ==========================================================================
-     8. MODAL DE DETALLES DE RECORRIDO (ITINERARIO DE PARADAS)
+     8. MODAL DE ITINERARIO DE GARITAS
      ========================================================================== */
   function initModal() {
     const modal = document.getElementById('route-modal');
@@ -651,7 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalLineNumber = document.getElementById('modal-line-number');
     if (modalLineNumber) {
       modalLineNumber.textContent = line.number;
-      modalLineNumber.className = `px-3 py-1 rounded-lg text-white font-heading font-bold text-xs ${line.bgClass}`;
     }
 
     document.getElementById('modal-line-title').textContent = line.name;
@@ -667,15 +659,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const isFirst = idx === 0;
         const isLast = idx === line.stopsList.length - 1;
         const stopItem = document.createElement('li');
-        stopItem.className = 'relative flex items-center gap-3.5 pb-3.5 last:pb-0';
+        stopItem.className = 'relative flex items-center gap-3 pb-3 last:pb-0 font-mono text-xs';
         stopItem.innerHTML = `
-          <div class="relative z-10 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 ${
-            isFirst ? 'bg-blue-600 text-white shadow-sm' : isLast ? 'bg-rose-500 text-white shadow-sm' : 'bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)]'
+          <div class="relative z-10 flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold shrink-0 ${
+            isFirst ? 'bg-[var(--accent-transit)] text-slate-950' : isLast ? 'bg-[var(--border-color)] text-[var(--text-primary)]' : 'bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-secondary)]'
           }">
             ${idx + 1}
           </div>
-          <span class="text-xs ${isFirst || isLast ? 'font-bold text-[var(--text-primary)]' : 'text-[var(--text-secondary)] font-medium'}">
-            ${stopName} ${isFirst ? '<span class="text-[10px] text-blue-500 font-normal">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-[10px] text-rose-500 font-normal">(Destino)</span>' : ''}
+          <span class="${isFirst || isLast ? 'font-bold text-[var(--text-primary)] font-sans' : 'text-[var(--text-secondary)] font-sans'}">
+            ${stopName} ${isFirst ? '<span class="text-[10px] font-mono text-[var(--accent-transit)] uppercase font-bold">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-[10px] font-mono text-[var(--text-muted)] uppercase">(Destino)</span>' : ''}
           </span>
         `;
         stopsListContainer.appendChild(stopItem);
@@ -696,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9. ALERTAS CIUDADANAS Y FORMULARIO
+     9. ALERTAS CIUDADANAS
      ========================================================================== */
   function initAlertsFeed() {
     const feedContainer = document.getElementById('alerts-feed-container');
@@ -714,7 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (incidentSelect && incidentText) {
           incidentSelect.value = incidentText;
           document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' });
-          showToast(`Incidencia seleccionada: ${incidentText}`, 'info');
+          showToast(`Incidencia: ${incidentText}`, 'info');
         }
       });
     });
@@ -722,28 +714,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createAlertCard(alert) {
     const item = document.createElement('div');
-    const badgeColor = alert.type === 'danger' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                       alert.type === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                       'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    const dotColor = alert.type === 'danger' ? 'bg-rose-500' :
-                     alert.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500';
+    const isCritical = alert.type === 'danger' || alert.title.includes('Desvío') || alert.title.includes('Corte');
+    
+    const cardBorderClass = isCritical 
+      ? 'border border-[var(--alert-soft-border)] bg-[var(--alert-soft-bg)]' 
+      : 'border border-[var(--border-color)] bg-[var(--bg-main)]';
 
-    item.className = 'p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] transition-all hover:border-blue-500/40 text-xs';
+    const tagClass = isCritical
+      ? 'bg-[var(--alert-soft)] text-white'
+      : 'bg-[var(--border-color)] text-[var(--text-primary)]';
+
+    item.className = `p-3 rounded-lg ${cardBorderClass} transition-all text-xs font-sans`;
     item.innerHTML = `
-      <div class="flex items-start justify-between gap-2 mb-1.5">
+      <div class="flex items-start justify-between gap-2 mb-1">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor} shrink-0">
-            <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
-            <span>${alert.line}</span>
+          <span class="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold shrink-0 ${tagClass}">
+            ${alert.line}
           </span>
-          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs truncate">${alert.title}</h4>
+          <h4 class="font-heading font-bold text-xs truncate text-[var(--text-primary)]">${alert.title}</h4>
         </div>
-        <span class="text-[10px] text-[var(--text-muted)] font-medium whitespace-nowrap shrink-0">${alert.time}</span>
+        <span class="font-mono text-[10px] text-[var(--text-muted)] shrink-0">${alert.time}</span>
       </div>
-      <p class="text-[11px] text-[var(--text-secondary)] mb-2 leading-relaxed">${alert.description}</p>
-      <div class="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-color)]">
-        <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-blue-500"></i>${alert.stop}</span>
-        <span class="flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-500"></i>${alert.author}</span>
+      <p class="text-[11px] text-[var(--text-secondary)] mb-2 leading-relaxed font-sans">${alert.description}</p>
+      <div class="flex items-center justify-between font-mono text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-color)]">
+        <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-[var(--accent-transit)]"></i>${alert.stop}</span>
+        <span class="flex items-center gap-1">${alert.author}</span>
       </div>
     `;
     return item;
@@ -767,22 +762,22 @@ document.addEventListener('DOMContentLoaded', () => {
       let hasError = false;
 
       if (!lineSelect.value) {
-        showFieldError(lineSelect, 'Selecciona la línea de colectivo.');
+        showFieldError(lineSelect, 'Selecciona la línea.');
         hasError = true;
       }
 
       if (!stopSelect.value) {
-        showFieldError(stopSelect, 'Selecciona la garita o nodo.');
+        showFieldError(stopSelect, 'Selecciona la garita.');
         hasError = true;
       }
 
       if (!typeSelect.value) {
-        showFieldError(typeSelect, 'Indica el motivo del reporte.');
+        showFieldError(typeSelect, 'Indica el motivo.');
         hasError = true;
       }
 
       if (hasError) {
-        showToast('Completa los campos requeridos marcados en rojo.', 'error');
+        showToast('Completa los campos requeridos', 'error');
         return;
       }
 
@@ -797,10 +792,9 @@ document.addEventListener('DOMContentLoaded', () => {
         stop: selectedStopObj ? selectedStopObj.name : stopSelect.value,
         author: nameInput.value.trim() ? `${nameInput.value.trim()} (Pasajero)` : 'Pasajero Verificado',
         time: 'Recién ahora',
-        description: commentInput.value.trim() || `Reporte emitido desde la parada ${selectedStopObj ? selectedStopObj.name : ''}.`
+        description: commentInput.value.trim() || `Reporte emitido desde ${selectedStopObj ? selectedStopObj.name : 'garita'}.`
       };
 
-      // Estado 4: ✅ SUCCESS - Agregar al store y al feed
       BUSRIO_DATA.alerts.unshift(newAlert);
       const feedContainer = document.getElementById('alerts-feed-container');
       if (feedContainer) {
@@ -808,16 +802,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       form.reset();
-      showToast('¡Alerta comunitaria publicada con éxito!', 'success');
+      showToast('Alerta ciudadana registrada con éxito', 'success');
     });
   }
 
   function showFieldError(field, message) {
-    field.classList.add('border-rose-500', 'focus:ring-rose-500');
+    field.classList.add('border-red-500');
     field.classList.remove('border-[var(--border-color)]');
     const parent = field.parentElement;
     const errorMsg = document.createElement('p');
-    errorMsg.className = 'field-error-text text-rose-500 text-[11px] mt-1 font-medium';
+    errorMsg.className = 'field-error-text text-red-500 font-mono text-[10px] mt-1 font-semibold';
     errorMsg.textContent = message;
     parent.appendChild(errorMsg);
   }
@@ -825,14 +819,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function clearFormErrors() {
     document.querySelectorAll('.field-error-text').forEach(el => el.remove());
     document.querySelectorAll('#report-form select, #report-form input').forEach(field => {
-      field.classList.remove('border-rose-500', 'focus:ring-rose-500');
+      field.classList.remove('border-red-500');
       field.classList.add('border-[var(--border-color)]');
     });
   }
 
   /* ==========================================================================
-     10. TOAST NOTIFICACIONES (RESPONSIVE CELULAR & ESCRITORIO)
-     ========================================================================== */
+     10. TOASTS RESPONSIVOS Y UTILITARIOS
+     ========================================================================= */
   function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -843,20 +837,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const toast = document.createElement('div');
-    const bgClass = type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-950/30' :
-                    type === 'error' ? 'bg-rose-600 text-white shadow-rose-950/30' :
-                    'bg-blue-600 text-white shadow-blue-950/30';
-    const icon = type === 'success' ? 'fa-solid fa-circle-check' :
-                 type === 'error' ? 'fa-solid fa-circle-exclamation' :
-                 'fa-solid fa-circle-info';
+    const badgeColor = type === 'success' ? 'bg-emerald-500 text-slate-950' :
+                       type === 'error' ? 'bg-red-500 text-white' :
+                       'bg-[var(--accent-transit)] text-slate-950';
 
-    toast.className = `pointer-events-auto w-full sm:w-auto max-w-sm flex items-center justify-between gap-3 px-4 py-3 rounded-2xl shadow-2xl font-sans text-xs font-semibold tracking-wide transition-all duration-300 translate-y-3 opacity-0 border border-white/10 backdrop-blur-md ${bgClass}`;
+    toast.className = 'pointer-events-auto w-full sm:w-auto max-w-sm flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] font-mono text-xs shadow-lg transition-all duration-200 translate-y-2 opacity-0';
     toast.innerHTML = `
-      <div class="flex items-center gap-2.5 min-w-0">
-        <i class="${icon} text-sm shrink-0"></i>
-        <span class="leading-snug break-words truncate">${message}</span>
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-4 h-4 rounded flex items-center justify-center font-bold text-[10px] shrink-0 ${badgeColor}">
+          ${type === 'success' ? '✓' : type === 'error' ? '!' : 'i'}
+        </span>
+        <span class="leading-snug truncate font-sans text-xs">${message}</span>
       </div>
-      <button type="button" class="toast-close-btn opacity-75 hover:opacity-100 text-xs shrink-0 p-1" aria-label="Cerrar notificación">
+      <button type="button" class="toast-close-btn text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs shrink-0 p-0.5" aria-label="Cerrar notificación">
         <i class="fa-solid fa-xmark"></i>
       </button>
     `;
@@ -866,25 +859,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = toast.querySelector('.toast-close-btn');
     if (closeBtn) {
       closeBtn.onclick = () => {
-        toast.classList.add('translate-y-3', 'opacity-0');
-        setTimeout(() => toast.remove(), 250);
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 200);
       };
     }
 
     requestAnimationFrame(() => {
-      toast.classList.remove('translate-y-3', 'opacity-0');
+      toast.classList.remove('translate-y-2', 'opacity-0');
     });
 
     setTimeout(() => {
       if (toast.parentElement) {
-        toast.classList.add('translate-y-3', 'opacity-0');
-        setTimeout(() => toast.remove(), 250);
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 200);
       }
-    }, 3200);
+    }, 3000);
   }
 
   /* ==========================================================================
-     11. SIMULACIÓN DE CUENTA REGRESIVA DE LLEGADA (ETA TICKER)
+     11. SIMULACIÓN DE CUENTA REGRESIVA DE LLEGADA
      ========================================================================== */
   function initLiveCountdown() {
     setInterval(() => {
@@ -892,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (line.etaMinutes > 1) {
           line.etaMinutes -= 1;
         } else {
-          line.etaMinutes = Math.floor(Math.random() * 8) + 6;
+          line.etaMinutes = Math.floor(Math.random() * 8) + 5;
         }
       });
       if (!state.searchQuery && state.selectedStop === 'all') {

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BusRío - Monitor interactivo de transporte público en tiempo real para Río Cuarto. Consulta frecuencias de colectivos, mapa georreferenciado, boleto combinado y alertas ciudadanas.">
-  <meta name="theme-color" content="#0A0B0E">
-  <title>BusRío | Monitor de Transporte en Tiempo Real · Río Cuarto</title>
+  <meta name="description" content="BusRío - Plataforma utilitaria de tránsito urbano en tiempo real para Río Cuarto. Consulta de frecuencias, garitas, cartografía de ramales y alertas ciudadanas.">
+  <meta name="theme-color" content="#0F111A">
+  <title>BusRío | Centro de Tránsito Urbano · Río Cuarto</title>
 
   <!-- Script anti-FOUT para Modo Oscuro (Predeterminado) y Modo Claro -->
   <script>
@@ -21,10 +21,10 @@
     })();
   </script>
 
-  <!-- Google Fonts: Plus Jakarta Sans (Títulos Display) & Inter (Cuerpo y Datos) -->
+  <!-- Google Fonts: Space Grotesk (Títulos Utilitarios) + Inter (Cuerpo) + JetBrains Mono (Datos/Horarios) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -40,224 +40,226 @@
       theme: {
         extend: {
           fontFamily: {
-            heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-            sans: ['Inter', 'sans-serif']
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            transit: {
+              amber: '#F59E0B',
+              amberHover: '#D97706',
+              dark: '#0F111A',
+              card: '#1E293B',
+              border: '#334155'
+            }
           }
         }
       }
     }
   </script>
 
-  <!-- Sistema de Variables CSS y Estilos de Alta Gama -->
+  <!-- Variables Globales y Sistema de Diseño Utilitario / Brutalista -->
   <style>
     :root {
       /* Modo Oscuro (Predeterminado) */
-      --bg-primary: #0A0B0E;
-      --bg-secondary: #111318;
-      --bg-glass: rgba(17, 19, 24, 0.85);
-      --text-primary: #F3F4F6;
-      --text-secondary: #9CA3AF;
-      --text-muted: #6B7280;
-      --accent: #2563EB;
-      --accent-glow: rgba(37, 99, 235, 0.4);
-      --accent-indigo: #4F46E5;
-      --card-bg: rgba(17, 19, 24, 0.9);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --border-color: #1F2937;
-      --border-light: rgba(255, 255, 255, 0.05);
-      --glow-color: rgba(37, 99, 235, 0.18);
-      --shadow-elevation: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
-      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-      --hero-title-gradient: linear-gradient(180deg, #FFFFFF 0%, #9CA3AF 100%);
+      --bg-main: #0F111A;
+      --bg-card: #1E293B;
+      --bg-card-subtle: #151D2A;
+      --border-color: #334155;
+      --border-hover: #475569;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --accent-transit: #F59E0B;
+      --accent-transit-hover: #D97706;
+      --accent-text: #0F111A;
+      --alert-soft: #EF4444;
+      --alert-soft-bg: rgba(239, 68, 68, 0.12);
+      --alert-soft-border: rgba(239, 68, 68, 0.35);
+      --card-radius: 12px;
     }
 
     html.light {
-      /* Modo Claro Suave */
-      --bg-primary: #F8F9FA;
-      --bg-secondary: #FFFFFF;
-      --bg-glass: rgba(255, 255, 255, 0.9);
+      /* Modo Claro */
+      --bg-main: #FAF9F6;
+      --bg-card: #FFFFFF;
+      --bg-card-subtle: #F1F5F9;
+      --border-color: #E2E8F0;
+      --border-hover: #CBD5E1;
       --text-primary: #0F172A;
       --text-secondary: #475569;
       --text-muted: #94A3B8;
-      --accent: #2563EB;
-      --accent-glow: rgba(37, 99, 235, 0.2);
-      --accent-indigo: #4F46E5;
-      --card-bg: #FFFFFF;
-      --card-border: #E2E8F0;
-      --border-color: #E2E8F0;
-      --border-light: rgba(0, 0, 0, 0.04);
-      --glow-color: rgba(37, 99, 235, 0.06);
-      --shadow-elevation: 0 20px 40px rgba(0, 0, 0, 0.04);
-      --shadow-card: 0 12px 32px -8px rgba(0, 0, 0, 0.05);
-      --hero-title-gradient: linear-gradient(180deg, #0F172A 0%, #475569 100%);
+      --accent-transit: #F59E0B;
+      --accent-transit-hover: #D97706;
+      --accent-text: #0F111A;
+      --alert-soft: #DC2626;
+      --alert-soft-bg: rgba(220, 38, 38, 0.08);
+      --alert-soft-border: rgba(220, 38, 38, 0.25);
+      --card-radius: 12px;
     }
 
     body {
-      background-color: var(--bg-primary);
+      background-color: var(--bg-main);
       color: var(--text-primary);
       overflow-x: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
-    /* Degradado en títulos display */
-    .title-gradient {
-      background: var(--hero-title-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    /* Tarjetas Utilitarias Limpias (Sin sombras difusas, radio 12px, borde fino 1px) */
+    .transit-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--card-radius);
+      transition: all 0.2s ease;
     }
 
-    /* Glassmorphism de alta gama */
-    .glass-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: var(--shadow-card);
+    .transit-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
     }
 
-    .glass-nav {
-      background-color: var(--bg-glass);
+    /* Botón de Acción Amarillo Tránsito */
+    .btn-transit {
+      background-color: var(--accent-transit);
+      color: var(--accent-text);
+      font-weight: 700;
+      border-radius: var(--card-radius);
+      transition: all 0.2s ease;
+    }
+
+    .btn-transit:hover {
+      background-color: var(--accent-transit-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Barra de Navegación Utilitaria */
+    .transit-nav {
+      background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
     }
 
-    /* Botón con Glow Premium */
-    .btn-glow {
-      background: linear-gradient(135deg, var(--accent), var(--accent-indigo));
-      box-shadow: 0 4px 20px var(--accent-glow);
-      transition: all 0.25s ease;
-    }
-
-    .btn-glow:hover {
-      box-shadow: 0 6px 28px rgba(37, 99, 235, 0.55);
-      transform: translateY(-1px);
-    }
-
-    /* Luces ambientales */
-    .ambient-glow {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Scrollbar personalizada delgada */
-    .scrollbar-thin::-webkit-scrollbar {
+    /* Scrollbar Utilitaria */
+    .scrollbar-transit::-webkit-scrollbar {
       width: 5px;
       height: 5px;
     }
-    .scrollbar-thin::-webkit-scrollbar-track {
+    .scrollbar-transit::-webkit-scrollbar-track {
       background: transparent;
     }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
+    .scrollbar-transit::-webkit-scrollbar-thumb {
       background: var(--border-color);
-      border-radius: 9999px;
+      border-radius: 4px;
     }
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    .scrollbar-transit::-webkit-scrollbar-thumb:hover {
       background: var(--text-muted);
     }
 
-    /* Leaflet popup styling */
+    /* Leaflet popup styling utilitario y rígido */
     .custom-leaflet-marker {
       background: transparent;
       border: none;
     }
     .leaflet-popup-content-wrapper {
-      background: var(--card-bg) !important;
+      background: var(--bg-card) !important;
       color: var(--text-primary) !important;
-      border-radius: 1rem !important;
-      border: 1px solid var(--card-border) !important;
-      box-shadow: var(--shadow-elevation) !important;
-      backdrop-filter: blur(12px) !important;
+      border-radius: 10px !important;
+      border: 1px solid var(--border-color) !important;
+      box-shadow: none !important;
     }
     .leaflet-popup-tip {
-      background: var(--card-bg) !important;
+      background: var(--bg-card) !important;
+    }
+
+    /* Cuadrícula técnica sutil de fondo */
+    .transit-grid-bg {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(51, 65, 85, 0.12) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(51, 65, 85, 0.12) 1px, transparent 1px);
+    }
+    html.light .transit-grid-bg {
+      background-image: 
+        linear-gradient(to right, rgba(226, 232, 240, 0.8) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(226, 232, 240, 0.8) 1px, transparent 1px);
     }
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
-
-  <!-- Luces de Fondo Ambientales -->
-  <div class="ambient-glow top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-blue-600/15 dark:bg-blue-600/10"></div>
-  <div class="ambient-glow top-[1000px] -left-48 w-[500px] h-[400px] bg-indigo-600/10 dark:bg-indigo-600/10"></div>
-  <div class="ambient-glow top-[2000px] -right-48 w-[500px] h-[400px] bg-emerald-600/10 dark:bg-emerald-600/10"></div>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950 font-sans">
 
   <!-- =========================================================================
        1. HEADER & BARRA DE NAVEGACIÓN
        ========================================================================= -->
-  <header id="navbar" class="sticky top-0 z-[1000] w-full glass-nav transition-colors duration-300">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+  <header id="navbar" class="sticky top-0 z-[1000] w-full transit-nav transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
-      <!-- Logotipo -->
+      <!-- Logotipo Utilitario -->
       <a href="#inicio" class="flex items-center gap-3 group" aria-label="Ir al inicio de BusRío">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all">
-          <i class="fa-solid fa-bus text-base"></i>
+        <div class="w-8 h-8 rounded-lg bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center font-mono font-bold text-sm">
+          <i class="fa-solid fa-bus"></i>
         </div>
         <div>
           <div class="flex items-center gap-1.5">
-            <span class="font-heading font-extrabold text-xl tracking-tight text-[var(--text-primary)]">Bus<span class="text-blue-600">Río</span></span>
-            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+            <span class="font-heading font-bold text-base tracking-tight text-[var(--text-primary)]">Bus<span class="text-[var(--accent-transit)]">Río</span></span>
+            <span class="w-2 h-2 rounded-full bg-[var(--accent-transit)] animate-pulse"></span>
           </div>
-          <p class="text-[10px] text-[var(--text-muted)] font-medium tracking-wide">Monitor Urbano · Río Cuarto</p>
+          <p class="text-[10px] font-mono text-[var(--text-muted)] tracking-wider uppercase">Tránsito Río Cuarto</p>
         </div>
       </a>
 
       <!-- Navegación de Escritorio -->
-      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold tracking-wide text-[var(--text-secondary)]" aria-label="Navegación principal">
-        <a href="#inicio" class="hover:text-[var(--text-primary)] transition-colors py-1">Inicio</a>
-        <a href="#monitor" class="hover:text-[var(--text-primary)] transition-colors py-1 flex items-center gap-1.5 text-blue-500">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-[var(--text-secondary)]" aria-label="Navegación principal">
+        <a href="#inicio" class="hover:text-[var(--text-primary)] transition-all">Inicio</a>
+        <a href="#monitor" class="hover:text-[var(--text-primary)] transition-all flex items-center gap-1.5 text-[var(--accent-transit)]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"></span>
           <span>Centro de Control</span>
         </a>
-        <a href="#trasbordos" class="hover:text-[var(--text-primary)] transition-colors py-1">Boleto Combinado</a>
-        <a href="#alertas" class="hover:text-[var(--text-primary)] transition-colors py-1">Alertas</a>
-        <a href="#historias" class="hover:text-[var(--text-primary)] transition-colors py-1">Comunidad</a>
-        <a href="#equipo" class="hover:text-[var(--text-primary)] transition-colors py-1">Equipo</a>
+        <a href="#trasbordos" class="hover:text-[var(--text-primary)] transition-all">Boleto Combinado (60m)</a>
+        <a href="#alertas" class="hover:text-[var(--text-primary)] transition-all">Alertas</a>
+        <a href="#historias" class="hover:text-[var(--text-primary)] transition-all">Comunidad</a>
+        <a href="#equipo" class="hover:text-[var(--text-primary)] transition-all">Equipo</a>
       </nav>
 
-      <!-- Acciones: Switch Modo Oscuro/Claro + CTA Glow -->
-      <div class="flex items-center gap-3">
+      <!-- Acciones: Switch Tema + CTA -->
+      <div class="flex items-center gap-2.5">
         <!-- Switch Tema -->
-        <button type="button" id="theme-toggle" class="flex items-center justify-center w-10 h-10 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-500 transition-all min-h-[40px]" aria-label="Alternar entre modo oscuro y claro">
-          <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+        <button type="button" id="theme-toggle" class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all" aria-label="Alternar entre modo oscuro y claro">
+          <i id="theme-icon" class="fa-solid fa-moon text-xs"></i>
         </button>
 
-        <!-- CTA Principal -->
-        <a href="#monitor" class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white btn-glow min-h-[40px]">
+        <!-- CTA Principal Amarillo Tránsito -->
+        <a href="#monitor" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold btn-transit">
           <i class="fa-solid fa-tower-broadcast text-xs"></i>
-          <span>Monitorear en Vivo</span>
+          <span>Ver Frecuencias</span>
         </a>
 
         <!-- Botón Menú Móvil -->
-        <button type="button" id="mobile-menu-btn" class="md:hidden flex items-center justify-center w-10 h-10 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-primary)] min-h-[40px]" aria-expanded="false" aria-label="Abrir menú">
+        <button type="button" id="mobile-menu-btn" class="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)]" aria-expanded="false" aria-label="Abrir menú">
           <i class="fa-solid fa-bars text-sm"></i>
         </button>
       </div>
 
     </div>
 
-    <!-- Menú Desplegable Móvil -->
-    <div id="mobile-menu" class="hidden md:hidden px-4 pt-3 pb-6 border-t border-[var(--border-color)] bg-[var(--bg-glass)] backdrop-blur-xl space-y-2">
-      <a href="#inicio" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-house w-6 text-blue-500"></i> Inicio
+    <!-- Menú Móvil -->
+    <div id="mobile-menu" class="hidden md:hidden px-4 py-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] space-y-2 text-xs font-medium">
+      <a href="#inicio" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-house mr-2 text-[var(--accent-transit)]"></i> Inicio
       </a>
-      <a href="#monitor" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-tower-broadcast w-6 text-emerald-500"></i> Centro de Control (Líneas y Mapa)
+      <a href="#monitor" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-tower-broadcast mr-2 text-[var(--accent-transit)]"></i> Centro de Control (Líneas y Mapa)
       </a>
-      <a href="#trasbordos" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-arrows-split-up-and-left w-6 text-cyan-500"></i> Boleto Combinado (60 min)
+      <a href="#trasbordos" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-arrows-split-up-and-left mr-2 text-[var(--accent-transit)]"></i> Boleto Combinado (60 min)
       </a>
-      <a href="#alertas" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-bullhorn w-6 text-amber-500"></i> Alertas Ciudadanas
+      <a href="#alertas" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-bullhorn mr-2 text-[var(--accent-transit)]"></i> Alertas Ciudadanas
       </a>
-      <a href="#historias" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-comment-dots w-6 text-purple-500"></i> Testimonios
+      <a href="#historias" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-comment-dots mr-2 text-[var(--accent-transit)]"></i> Comunidad
       </a>
-      <a href="#equipo" class="mobile-nav-link block px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-600/10">
-        <i class="fa-solid fa-users w-6 text-blue-500"></i> Equipo BusRío
+      <a href="#equipo" class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]">
+        <i class="fa-solid fa-users mr-2 text-[var(--accent-transit)]"></i> Equipo
       </a>
     </div>
   </header>
@@ -265,82 +267,164 @@
   <main class="flex-grow">
 
     <!-- =========================================================================
-         2. HERO SECTION
+         2. HERO SECTION (ASIMÉTRICO: 2 COLUMNAS)
          ========================================================================= -->
-    <section id="inicio" class="relative pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+    <section id="inicio" class="relative py-12 md:py-20 border-b border-[var(--border-color)] transit-grid-bg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
 
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-bold mb-6">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-          <span>Red Urbana Río Cuarto · 6 Ramales Georreferenciados</span>
-        </div>
+          <!-- COLUMNA IZQUIERDA: Textos Fuertes y Buscador UI -->
+          <div class="lg:col-span-6 space-y-6">
 
-        <!-- Título -->
-        <h1 class="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.12] title-gradient">
-          Saber cuándo llega tu colectivo, <br class="hidden sm:inline">
-          sin sorpresas en la garita.
-        </h1>
+            <!-- Badge Superior -->
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-mono text-xs">
+              <span class="w-2 h-2 rounded-full bg-[var(--accent-transit)] animate-pulse"></span>
+              <span>Río Cuarto • En tiempo real</span>
+            </div>
 
-        <!-- Subtítulo -->
-        <p class="mt-5 text-sm sm:text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-normal">
-          Accede al mapa interactivo y frecuencias en vivo de las líneas de Río Cuarto. Sin demoras a ciegas, con alertas de cortes y simulación del boleto combinado de 60 minutos.
-        </p>
+            <!-- Título H1 Gigante Utilitario -->
+            <h1 class="font-heading font-bold text-3xl sm:text-5xl lg:text-5xl tracking-tight leading-[1.1] text-[var(--text-primary)]">
+              Red de Colectivos Urbanos de Río Cuarto.
+            </h1>
 
-        <!-- Buscador Rápido del Hero -->
-        <div class="mt-8 max-w-xl mx-auto">
-          <div class="relative flex items-center">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 text-[var(--text-muted)] text-xs"></i>
-            <input type="text" id="hero-search-input" placeholder="Buscar línea, garita o destino (ej: UNRC, Hospital, Banda Norte)..." class="w-full bg-[var(--card-bg)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-xs rounded-2xl pl-10 pr-28 py-3.5 border border-[var(--border-color)] shadow-lg focus:outline-none focus:border-blue-500 backdrop-blur-md">
-            <button type="button" id="hero-search-btn" class="absolute right-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md">
-              Buscar
-            </button>
+            <!-- Subtítulo -->
+            <p class="text-sm text-[var(--text-secondary)] leading-relaxed max-w-lg">
+              Monitor interactivo de frecuencias, cartografía georreferenciada de ramales, telemetría de arribos en garitas y régimen tarifario de combinación.
+            </p>
+
+            <!-- Tarjeta UI: Buscador de Recorridos -->
+            <div class="transit-card p-5 space-y-4">
+              <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                <span class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+                  <i class="fa-solid fa-route text-[var(--accent-transit)]"></i>
+                  <span>Buscador de Recorridos</span>
+                </span>
+                <span class="font-mono text-[11px] text-[var(--text-muted)]">6 Ramales Activos</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label for="hero-line-select" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Ramal / Línea</label>
+                  <select id="hero-line-select" class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]">
+                    <option value="">-- Todas las Líneas --</option>
+                    <option value="linea-1">Línea 1 (UNRC - Alberdi)</option>
+                    <option value="linea-2">Línea 2 (Hospital - Banda Norte)</option>
+                    <option value="linea-8">Línea 8 (Banda Norte - Centro)</option>
+                    <option value="linea-11">Línea 11 (Alberdi - Constitución)</option>
+                    <option value="linea-14">Línea 14 (Hospital - UNRC)</option>
+                    <option value="linea-5">Línea 5 (Bimaco - Centro)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="hero-stop-select" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Garita / Nodo</label>
+                  <select id="hero-stop-select" class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]">
+                    <option value="all">-- Todas las Garitas --</option>
+                    <option value="plaza-roca">Plaza Roca (Centro)</option>
+                    <option value="hospital-padua">Hospital San Antonio</option>
+                    <option value="unrc-campus">Campus UNRC</option>
+                    <option value="centro-trasbordo">Trasbordo Constitución</option>
+                    <option value="banda-norte">Banda Norte</option>
+                    <option value="barrio-alberdi">Barrio Alberdi</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="button" id="hero-search-btn" class="w-full py-3 btn-transit flex items-center justify-center gap-2 text-xs uppercase font-mono tracking-wider">
+                <span>Consultar y Trazar en Mapa</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
+            </div>
+
           </div>
 
-          <!-- Sugerencias de Nodos Clave -->
-          <div class="flex flex-wrap items-center justify-center gap-2 mt-3 text-[11px] text-[var(--text-muted)]">
-            <span class="font-medium">Accesos rápidos:</span>
-            <button type="button" class="quick-node-btn hover:text-blue-500 underline" data-stop="unrc-campus">Campus UNRC</button>
-            <span>•</span>
-            <button type="button" class="quick-node-btn hover:text-blue-500 underline" data-stop="hospital-padua">Hospital Padua</button>
-            <span>•</span>
-            <button type="button" class="quick-node-btn hover:text-blue-500 underline" data-stop="plaza-roca">Plaza Roca</button>
-            <span>•</span>
-            <button type="button" class="quick-node-btn hover:text-blue-500 underline" data-stop="banda-norte">Banda Norte</button>
-          </div>
-        </div>
+          <!-- COLUMNA DERECHA: Diseño en Capas (Position: Relative / Absolute) -->
+          <div class="lg:col-span-6">
+            <div class="relative h-[380px] sm:h-[440px] rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] overflow-hidden p-6 flex items-center justify-center">
 
+              <!-- Fondo Esquemático Simulando Mapa Urbano -->
+              <div class="absolute inset-0 opacity-15 transit-grid-bg"></div>
+              
+              <!-- Red Vectorial de Carreteras Simulada -->
+              <svg class="absolute inset-0 w-full h-full stroke-[var(--border-color)] stroke-[1.5]" fill="none">
+                <path d="M 0 100 Q 150 120 300 220 T 600 280" />
+                <path d="M 120 0 L 220 440" />
+                <path d="M 380 0 L 320 440" />
+                <path d="M 50 350 Q 250 200 550 150" />
+              </svg>
+
+              <!-- CAPA 1 (Arriba a la Izquierda): Tarjeta Línea 1 -->
+              <div class="transit-card p-4 w-64 absolute top-6 left-6 z-20 space-y-2 pointer-events-none">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--accent-transit)] text-slate-950">LÍNEA 1</span>
+                  <span class="font-mono text-[11px] text-[var(--accent-transit)] font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)] animate-ping"></span>
+                    <span>3 MIN</span>
+                  </span>
+                </div>
+                <div class="text-xs">
+                  <strong class="text-[var(--text-primary)] block truncate">Campus UNRC</strong>
+                  <span class="text-[11px] text-[var(--text-muted)] font-mono">Garita Plaza Roca</span>
+                </div>
+              </div>
+
+              <!-- CAPA 2 (Abajo a la Derecha): Tarjeta Garita Central -->
+              <div class="transit-card p-4 w-64 absolute bottom-6 right-6 z-20 space-y-2 pointer-events-none">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-[10px] uppercase text-[var(--text-muted)] font-bold">Nodo Primario</span>
+                  <span class="font-mono text-[10px] text-emerald-500 font-semibold">Operativo</span>
+                </div>
+                <div class="text-xs">
+                  <strong class="text-[var(--text-primary)] block">Plaza Roca (Centro)</strong>
+                  <span class="text-[11px] text-[var(--text-muted)] font-mono">5 ramales conectando</span>
+                </div>
+              </div>
+
+              <!-- CAPA 3 (Centro Flotante): Tarjeta Boleto Combinado -->
+              <div class="transit-card px-4 py-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 border-amber-500/50 flex items-center gap-3 pointer-events-none">
+                <div class="w-7 h-7 rounded bg-[var(--accent-transit)]/15 text-[var(--accent-transit)] flex items-center justify-center font-bold text-xs">
+                  <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div>
+                  <span class="font-mono text-[11px] font-bold text-[var(--text-primary)] block">Trasbordo 60 Minutos</span>
+                  <span class="font-mono text-[10px] text-[var(--accent-transit)] font-bold">$0 Segundo Pasaje</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 
     <!-- =========================================================================
-         3. SECCIÓN DE NODOS / POLOS DE AFLUENCIA
+         3. NODOS Y POLOS DE AFLUENCIA (TIRA TÉCNICA)
          ========================================================================= -->
-    <section class="py-6 border-y border-[var(--border-color)] bg-[var(--bg-secondary)]/40">
+    <section class="py-4 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-center justify-center text-center text-xs text-[var(--text-muted)]">
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-graduation-cap text-blue-500"></i>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-center text-xs font-mono text-[var(--text-secondary)]">
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-graduation-cap text-[var(--accent-transit)]"></i>
             <span>Campus UNRC</span>
           </div>
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-hospital text-emerald-500"></i>
-            <span>Hospital Padua</span>
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-hospital text-[var(--accent-transit)]"></i>
+            <span>Hospital Central</span>
           </div>
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-tree text-amber-500"></i>
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-tree text-[var(--accent-transit)]"></i>
             <span>Plaza Roca</span>
           </div>
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-arrows-split-up-and-left text-cyan-500"></i>
-            <span>Nodo Trasbordo</span>
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrows-split-up-and-left text-[var(--accent-transit)]"></i>
+            <span>Nodo Constitución</span>
           </div>
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-compass text-indigo-500"></i>
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-compass text-[var(--accent-transit)]"></i>
             <span>Banda Norte</span>
           </div>
-          <div class="p-2 flex items-center justify-center gap-2 font-medium">
-            <i class="fa-solid fa-store text-purple-500"></i>
+          <div class="p-2 border border-[var(--border-color)] rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-store text-[var(--accent-transit)]"></i>
             <span>Barrio Alberdi</span>
           </div>
         </div>
@@ -348,113 +432,110 @@
     </section>
 
     <!-- =========================================================================
-         4. CENTRO DE CONTROL INTEGRADO (MONITOR Y MAPA UNIFICADOS)
+         4. CENTRO DE CONTROL UNIFICADO (MONITOR Y MAPA RIGIDO)
          ========================================================================= -->
     <section id="monitor" class="py-12 md:py-16 border-b border-[var(--border-color)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- Encabezado de Sección -->
+        <!-- Cabecera de la Sección -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-bold mb-2">
-              <i class="fa-solid fa-tower-broadcast"></i>
-              <span>Centro de Control en Tiempo Real</span>
-            </div>
-            <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-[var(--text-primary)] tracking-tight">
-              Líneas, Garitas y Cartografía en Vivo
+            <span class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent-transit)] block mb-1">
+              Despacho y Seguimiento Urbano
+            </span>
+            <h2 class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+              Centro de Control en Tiempo Real
             </h2>
             <p class="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-              Selecciona cualquier ramal o garita para trazar el recorrido exacto sobre el mapa interactivo.
+              Selecciona cualquier ramal o garita para trazar el recorrido sobre el mapa integrado sin salir de la vista.
             </p>
           </div>
 
-          <!-- Buscador de Líneas del Monitor -->
+          <!-- Buscador Técnico del Monitor -->
           <div class="relative w-full md:w-64 shrink-0">
             <i class="fa-solid fa-filter absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs"></i>
-            <input type="text" id="monitor-search-input" placeholder="Filtrar línea o garita..." class="w-full bg-[var(--card-bg)] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-color)] focus:outline-none focus:border-blue-500 shadow-sm">
+            <input type="text" id="monitor-search-input" placeholder="Filtrar por línea o calle..." class="w-full bg-[var(--bg-card)] rounded-lg pl-9 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent-transit)] font-mono">
           </div>
         </div>
 
-        <!-- Filtros por Garita (Píldoras Horizontales con Scroll) -->
-        <div class="mb-6 overflow-x-auto pb-2 scrollbar-thin">
-          <div id="stop-tabs-container" class="flex items-center gap-1.5 min-w-max">
-            <!-- Inyectado dinámicamente desde app.js -->
+        <!-- Filtros Horizontales por Garita (Píldoras) -->
+        <div class="mb-6 overflow-x-auto pb-2 scrollbar-transit">
+          <div id="stop-tabs-container" class="flex items-center gap-2 min-w-max">
+            <!-- Renderizado dinámicamente desde app.js -->
           </div>
         </div>
 
-        <!-- Segmented Control Móvil (Alternar entre Lista de Líneas y Mapa en celus) -->
-        <div class="flex lg:hidden items-center justify-center p-1 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] mb-4">
-          <button type="button" id="mobile-view-list" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5">
+        <!-- Selector de Vista Móvil (Celulares: Líneas <-> Mapa) -->
+        <div class="flex lg:hidden items-center justify-center p-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] mb-4">
+          <button type="button" id="mobile-view-list" class="flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-list-ul"></i>
             <span>Líneas (<span id="mobile-line-count">6</span>)</span>
           </button>
-          <button type="button" id="mobile-view-map" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5">
+          <button type="button" id="mobile-view-map" class="flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-map-location-dot"></i>
-            <span>Ver Mapa Interactivo</span>
+            <span>Ver Mapa</span>
           </button>
         </div>
 
-        <!-- GRID UNIFICADO: Panel de Líneas (5 cols) + Mapa Leaflet (7 cols) -->
+        <!-- GRID UNIFICADO: Panel de Líneas (5 cols) + Mapa Leaflet Rígido (7 cols) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           <!-- COLUMNA 1: Panel de Líneas (Altura Fija Estable sin saltos) -->
           <div id="monitor-list-col" class="lg:col-span-5 w-full block">
-            <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-[600px] border border-[var(--card-border)]">
+            <div class="transit-card p-4 flex flex-col h-[580px]">
 
-              <!-- Cabecera del Panel de Líneas -->
-              <div class="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-color)] shrink-0">
+              <!-- Cabecera del Panel -->
+              <div class="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-color)] shrink-0 font-mono text-xs">
                 <div class="flex items-center gap-2">
-                  <span class="font-heading font-bold text-xs uppercase tracking-wider text-[var(--text-primary)]">
-                    Ramales Urbanos
-                  </span>
-                  <span id="lines-counter-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                  <strong class="text-[var(--text-primary)] uppercase">Ramales en Servicio</strong>
+                  <span id="lines-counter-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-[var(--border-color)] text-[var(--text-primary)]">
                     6 Líneas
                   </span>
                 </div>
-                <div class="flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>En Servicio</span>
-                </div>
+                <span class="text-[11px] text-[var(--accent-transit)] font-bold flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)] animate-pulse"></span>
+                  <span>En Línea</span>
+                </span>
               </div>
 
-              <!-- Contenedor Scrollable de Tarjetas con Altura Estable -->
-              <div id="lines-scroll-container" class="flex-grow overflow-y-auto pr-1 scrollbar-thin">
+              <!-- Contenedor Scrollable Estable -->
+              <div id="lines-scroll-container" class="flex-grow overflow-y-auto pr-1 scrollbar-transit">
 
-                <!-- ESTADO 1: ⏳ LOADING SKELETON (Dimensiones Idénticas a las Tarjetas) -->
+                <!-- ESTADO 1: ⏳ LOADING SKELETON (Proporciones Idénticas) -->
                 <div id="lines-skeleton" class="hidden space-y-3">
-                  <div class="p-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] animate-pulse space-y-2.5">
-                    <div class="flex justify-between items-center"><div class="w-16 h-5 bg-[var(--border-color)] rounded"></div><div class="w-12 h-5 bg-[var(--border-color)] rounded"></div></div>
+                  <div class="p-3.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] animate-pulse space-y-2">
+                    <div class="flex justify-between"><div class="w-16 h-4 bg-[var(--border-color)] rounded"></div><div class="w-12 h-4 bg-[var(--border-color)] rounded"></div></div>
                     <div class="w-3/4 h-4 bg-[var(--border-color)] rounded"></div>
                     <div class="w-1/2 h-3 bg-[var(--border-color)] rounded"></div>
                   </div>
-                  <div class="p-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] animate-pulse space-y-2.5">
-                    <div class="flex justify-between items-center"><div class="w-16 h-5 bg-[var(--border-color)] rounded"></div><div class="w-12 h-5 bg-[var(--border-color)] rounded"></div></div>
+                  <div class="p-3.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] animate-pulse space-y-2">
+                    <div class="flex justify-between"><div class="w-16 h-4 bg-[var(--border-color)] rounded"></div><div class="w-12 h-4 bg-[var(--border-color)] rounded"></div></div>
                     <div class="w-3/4 h-4 bg-[var(--border-color)] rounded"></div>
                     <div class="w-1/2 h-3 bg-[var(--border-color)] rounded"></div>
                   </div>
-                  <div class="p-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] animate-pulse space-y-2.5">
-                    <div class="flex justify-between items-center"><div class="w-16 h-5 bg-[var(--border-color)] rounded"></div><div class="w-12 h-5 bg-[var(--border-color)] rounded"></div></div>
+                  <div class="p-3.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] animate-pulse space-y-2">
+                    <div class="flex justify-between"><div class="w-16 h-4 bg-[var(--border-color)] rounded"></div><div class="w-12 h-4 bg-[var(--border-color)] rounded"></div></div>
                     <div class="w-3/4 h-4 bg-[var(--border-color)] rounded"></div>
                     <div class="w-1/2 h-3 bg-[var(--border-color)] rounded"></div>
                   </div>
                 </div>
 
-                <!-- ESTADO 2: 📭 EMPTY STATE (Centrado sin alterar el alto del panel) -->
+                <!-- ESTADO 2: 📭 EMPTY STATE (Centrado sin alterar el alto exterior) -->
                 <div id="lines-empty" class="hidden h-full flex flex-col items-center justify-center text-center p-6 text-xs">
-                  <div class="w-12 h-12 rounded-full bg-[var(--bg-primary)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] text-xl mb-3">
-                    <i class="fa-solid fa-bus"></i>
+                  <div class="w-10 h-10 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] text-base mb-3 font-mono">
+                    <i class="fa-solid fa-ban"></i>
                   </div>
-                  <h3 class="font-heading font-bold text-sm text-[var(--text-primary)]">Sin colectivos para este filtro</h3>
+                  <h3 class="font-heading font-bold text-sm text-[var(--text-primary)]">Sin ramales para este filtro</h3>
                   <p class="text-[var(--text-muted)] text-xs mt-1 max-w-xs">
-                    Ninguna línea coincide con la parada o búsqueda seleccionada.
+                    No hay colectivos asignados a esta combinación de búsqueda.
                   </p>
-                  <button type="button" id="reset-filters-btn" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md">
-                    Restablecer Filtros
+                  <button type="button" id="reset-filters-btn" class="mt-4 px-4 py-2 btn-transit text-xs font-mono font-bold uppercase">
+                    Restablecer
                   </button>
                 </div>
 
-                <!-- ESTADO 3: ✅ SUCCESS (Lista uniforme de tarjetas de línea) -->
-                <div id="lines-grid" class="space-y-3">
+                <!-- ESTADO 3: ✅ SUCCESS (Tarjetas Utilitarias) -->
+                <div id="lines-grid" class="space-y-2.5">
                   <!-- Renderizado dinámicamente desde app.js -->
                 </div>
 
@@ -463,40 +544,40 @@
             </div>
           </div>
 
-          <!-- COLUMNA 2: Mapa Leaflet Interactivo (Pegado y sincronizado al panel) -->
+          <!-- COLUMNA 2: Mapa Leaflet Rígido (Sin adornos) -->
           <div id="monitor-map-col" class="lg:col-span-7 w-full hidden lg:block">
-            <div class="glass-card rounded-2xl overflow-hidden p-2 relative flex flex-col h-[600px] border border-[var(--card-border)]">
+            <div class="transit-card p-1.5 relative flex flex-col h-[580px]">
               
-              <!-- Contenedor del Mapa Leaflet -->
-              <div id="leaflet-map" class="w-full h-full rounded-xl z-10"></div>
+              <!-- Contenedor del Mapa -->
+              <div id="leaflet-map" class="w-full h-full rounded-[10px] z-10"></div>
 
-              <!-- Banner Flotante de Línea Activa -->
-              <div id="active-route-banner" class="absolute top-4 left-4 z-[400] bg-[var(--card-bg)] backdrop-blur-md px-3.5 py-2 rounded-xl border border-[var(--card-border)] shadow-lg flex items-center gap-2.5 text-xs text-[var(--text-primary)] hidden max-w-[85%] sm:max-w-md">
-                <span id="active-route-badge" class="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-blue-600 shrink-0">Línea 1</span>
-                <span id="active-route-text" class="font-medium truncate">Campus UNRC</span>
-                <button type="button" id="clear-route-focus-btn" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1 p-1 shrink-0" title="Ver todas las líneas">
+              <!-- Banner Flotante de Ruta Activa -->
+              <div id="active-route-banner" class="absolute top-3.5 left-3.5 z-[400] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] flex items-center gap-2 text-xs font-mono text-[var(--text-primary)] hidden max-w-[85%] sm:max-w-md">
+                <span id="active-route-badge" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-transit)] text-slate-950 shrink-0">Línea 1</span>
+                <span id="active-route-text" class="truncate font-sans font-semibold">Campus UNRC</span>
+                <button type="button" id="clear-route-focus-btn" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1 p-0.5" title="Mostrar todas las líneas">
                   <i class="fa-solid fa-xmark text-xs"></i>
                 </button>
               </div>
 
-              <!-- Controles Flotantes del Mapa -->
-              <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
-                <button type="button" id="map-reset-btn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] text-xs font-bold text-[var(--text-primary)] shadow-lg hover:border-blue-500/50 transition-all backdrop-blur-md" title="Recentrar mapa en Río Cuarto">
-                  <i class="fa-solid fa-crosshairs text-blue-500"></i>
+              <!-- Controles Flotantes -->
+              <div class="absolute top-3.5 right-3.5 z-[400]">
+                <button type="button" id="map-reset-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-xs font-mono font-bold text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all" title="Recentrar mapa en Río Cuarto">
+                  <i class="fa-solid fa-crosshairs text-[var(--accent-transit)]"></i>
                   <span class="hidden sm:inline">Recentrar</span>
                 </button>
               </div>
 
-              <!-- Leyenda Inferior de Ramales -->
-              <div class="absolute bottom-4 left-4 right-4 z-[400] bg-[var(--card-bg)]/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-[var(--card-border)] text-[10px] shadow-lg hidden sm:flex items-center justify-between gap-2 overflow-x-auto">
-                <span class="font-bold text-[var(--text-primary)] shrink-0">Traza:</span>
-                <div class="flex items-center gap-3 text-[var(--text-secondary)] shrink-0">
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> L1 UNRC</span>
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-600"></span> L2 Hospital</span>
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> L8 B. Norte</span>
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-600"></span> L11 Alberdi</span>
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-purple-600"></span> L14 Hosp/UNRC</span>
-                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> L5 Bimaco</span>
+              <!-- Leyenda Técnica Inferior -->
+              <div class="absolute bottom-3.5 left-3.5 right-3.5 z-[400] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-secondary)] hidden sm:flex items-center justify-between gap-2 overflow-x-auto">
+                <span class="font-bold text-[var(--text-primary)] shrink-0">Ramales:</span>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> L1</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span> L2</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> L8</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-600"></span> L11</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-600"></span> L14</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> L5</span>
                 </div>
               </div>
 
@@ -509,74 +590,74 @@
     </section>
 
     <!-- =========================================================================
-         5. BOLETO COMBINADO Y TRASBORDO DE 60 MINUTOS
+         5. BOLETO COMBINADO DE 60 MINUTOS
          ========================================================================= -->
-    <section id="trasbordos" class="py-16 md:py-24 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/30">
+    <section id="trasbordos" class="py-12 md:py-16 border-b border-[var(--border-color)] bg-[var(--bg-card-subtle)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
 
-          <!-- Columna Izquierda: Información -->
-          <div class="lg:col-span-5 space-y-5">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold">
+          <!-- Columna Izquierda: Información Técnica -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--accent-transit)] font-mono text-xs font-bold">
               <i class="fa-solid fa-arrows-split-up-and-left"></i>
               <span>Régimen Tarifario Municipal</span>
             </div>
-            <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-[var(--text-primary)] leading-tight">
-              60 minutos de combinación libre.
+            <h2 class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+              60 Minutos de Combinación Libre.
             </h2>
             <p class="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-              En Río Cuarto, al abonar tu primer viaje en cualquier línea urbana, dispones de 60 minutos para abordar un segundo colectivo de ramal diferente con <strong>costo $0</strong>.
+              En Río Cuarto, al timbrar tu primer viaje en cualquier línea urbana, cuentas con una ventana de 60 minutos para conectar con un ramal distinto abonando <strong>$0 extra</strong>.
             </p>
-            <div class="grid grid-cols-2 gap-3 pt-1">
-              <div class="p-3 rounded-xl bg-[var(--card-bg)] border border-[var(--border-color)]">
-                <span class="font-heading font-extrabold text-lg text-cyan-400 block">60 min</span>
-                <span class="text-[11px] text-[var(--text-muted)]">Ventana máxima</span>
+            <div class="grid grid-cols-2 gap-3 pt-1 font-mono">
+              <div class="p-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)]">
+                <span class="font-bold text-lg text-[var(--accent-transit)] block">60 MIN</span>
+                <span class="text-[10px] text-[var(--text-muted)] uppercase">Ventana Máxima</span>
               </div>
-              <div class="p-3 rounded-xl bg-[var(--card-bg)] border border-[var(--border-color)]">
-                <span class="font-heading font-extrabold text-lg text-emerald-400 block">$0 extra</span>
-                <span class="text-[11px] text-[var(--text-muted)]">Segundo pasaje</span>
+              <div class="p-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)]">
+                <span class="font-bold text-lg text-[var(--text-primary)] block">$0 EXTRA</span>
+                <span class="text-[10px] text-[var(--text-muted)] uppercase">2do Pasaje Bonificado</span>
               </div>
             </div>
           </div>
 
-          <!-- Columna Derecha: Diagrama Interactivo de Conexión -->
+          <!-- Columna Derecha: Diagrama Técnico Paso a Paso -->
           <div class="lg:col-span-7">
-            <div class="glass-card rounded-2xl p-5 sm:p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b border-[var(--border-color)] text-xs">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-ticket text-cyan-400"></i>
-                  <span class="font-heading font-bold text-[var(--text-primary)]">Simulador de Trasbordo</span>
-                </div>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Bonificación Activa
+            <div class="transit-card p-5 space-y-3.5">
+              <div class="flex items-center justify-between pb-2.5 border-b border-[var(--border-color)] text-xs font-mono">
+                <span class="font-bold text-[var(--text-primary)] uppercase flex items-center gap-2">
+                  <i class="fa-solid fa-ticket text-[var(--accent-transit)]"></i>
+                  <span>Simulación de Validación</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-[var(--accent-transit)] text-slate-950 font-bold">
+                  ACTIVO
                 </span>
               </div>
 
-              <div class="space-y-2.5 text-xs">
-                <div class="flex items-start gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)]">
-                  <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</div>
+              <div class="space-y-2 text-xs">
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)]">
+                  <div class="w-6 h-6 rounded bg-[var(--accent-transit)] text-slate-950 font-mono font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">1</div>
                   <div>
                     <strong class="text-[var(--text-primary)] block">Subida Inicial: Línea 8 (Banda Norte)</strong>
-                    <span class="text-[var(--text-muted)] text-[11px]">Timbrado con tarjeta SUBE/Local a las 14:15 hs. Pasaje regular.</span>
+                    <span class="text-[11px] text-[var(--text-muted)] font-mono">Timbrado a las 14:15 hs. Tarifa regular abonada.</span>
                   </div>
                 </div>
 
                 <div class="flex justify-center py-0.5 text-[var(--text-muted)] text-xs">
-                  <i class="fa-solid fa-arrow-down animate-bounce"></i>
+                  <i class="fa-solid fa-arrow-down"></i>
                 </div>
 
-                <div class="flex items-start gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)]">
-                  <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</div>
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)]">
+                  <div class="w-6 h-6 rounded bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold flex items-center justify-center text-[11px] shrink-0 mt-0.5">2</div>
                   <div>
                     <strong class="text-[var(--text-primary)] block">Trasbordo Gratuito: Línea 1 (Hacia UNRC)</strong>
-                    <span class="text-[var(--text-muted)] text-[11px]">Validación en Plaza Roca a las 14:42 hs (a los 27 min). Costo: $0.</span>
+                    <span class="text-[11px] text-[var(--text-muted)] font-mono">Validación en Plaza Roca a las 14:42 hs (a los 27 min). Tarifa: $0.</span>
                   </div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 text-[11px] text-[var(--text-secondary)] flex items-center gap-2">
-                <i class="fa-solid fa-circle-info text-cyan-400 shrink-0"></i>
-                <span>Válido todos los días hábiles, fines de semana y feriados en cualquier nodo de la ciudad.</span>
+              <div class="p-2.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[11px] text-[var(--text-secondary)] font-mono flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-[var(--accent-transit)] shrink-0"></i>
+                <span>Válido en días hábiles, sábados y feriados en cualquier punto de conexión.</span>
               </div>
             </div>
           </div>
@@ -586,68 +667,68 @@
     </section>
 
     <!-- =========================================================================
-         6. ALERTAS CIUDADANAS Y FORMULARIO COMUNITARIO
+         6. ALERTAS CIUDADANAS (ROJO SUAVE EXCLUSIVO EN VIVO)
          ========================================================================= -->
-    <section id="alertas" class="py-16 md:py-24 border-b border-[var(--border-color)]">
+    <section id="alertas" class="py-12 md:py-16 border-b border-[var(--border-color)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="text-center max-w-2xl mx-auto mb-12">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold mb-3">
-            <i class="fa-solid fa-bullhorn"></i>
-            <span>Red Colaborativa de Pasajeros</span>
+        <!-- Cabecera -->
+        <div class="max-w-2xl mb-8">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[var(--alert-soft-bg)] border border-[var(--alert-soft-border)] text-[var(--alert-soft)] font-mono text-xs font-bold mb-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--alert-soft)] animate-pulse"></span>
+            <span>Canal Colaborativo</span>
           </div>
-          <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-[var(--text-primary)] tracking-tight">
-            Alertas Comunitarias en Vivo
+          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+            Alertas Ciudadanas en Vivo
           </h2>
           <p class="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-            Reporta demoras inusuales, desvíos por obras o colectivos colmados para avisar a toda la ciudad.
+            Reportes de demoras mayores a 20 minutos, cortes viales y desvíos reportados por pasajeros en la vía pública.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-          <!-- Feed de Alertas en Vivo (6 cols) -->
-          <div class="lg:col-span-6 space-y-4">
+          <!-- Columna 1: Feed de Alertas (6 cols) -->
+          <div class="lg:col-span-6 space-y-3">
             <!-- Botones Rápidos 1-Clic -->
-            <div>
-              <span class="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-2">Selección Rápida:</span>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-medium hover:bg-rose-500/20 transition-colors" data-incident="Desvío por Obras o Cortes">
-                  <i class="fa-solid fa-road-barrier mr-1"></i> Desvío por Obras
-                </button>
-                <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium hover:bg-amber-500/20 transition-colors" data-incident="Demora Mayor a 20 Minutos">
-                  <i class="fa-solid fa-clock mr-1"></i> Demora +20m
-                </button>
-                <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-colors" data-incident="Colectivo Lleno / No Paró">
-                  <i class="fa-solid fa-users mr-1"></i> Coche Lleno
-                </button>
-              </div>
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <button type="button" class="quick-report-btn px-2.5 py-1 rounded-lg border border-[var(--alert-soft-border)] bg-[var(--alert-soft-bg)] text-[var(--alert-soft)] font-bold transition-all hover:brightness-110" data-incident="Desvío por Obras o Cortes">
+                Desvío por Obras
+              </button>
+              <button type="button" class="quick-report-btn px-2.5 py-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] font-bold transition-all hover:border-[var(--accent-transit)]" data-incident="Demora Mayor a 20 Minutos">
+                Demora +20 min
+              </button>
+              <button type="button" class="quick-report-btn px-2.5 py-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] font-bold transition-all hover:border-[var(--accent-transit)]" data-incident="Colectivo Lleno / No Paró">
+                Coche Lleno
+              </button>
             </div>
 
-            <!-- Contenedor del Feed -->
-            <div class="glass-card rounded-2xl p-4 sm:p-5">
-              <span class="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-3">Avisos Recientes:</span>
-              <div id="alerts-feed-container" class="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
-                <!-- Generado dinámicamente desde app.js -->
+            <!-- Feed Container -->
+            <div class="transit-card p-4">
+              <span class="font-mono text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-3">
+                Reportes Activos:
+              </span>
+              <div id="alerts-feed-container" class="space-y-2.5 max-h-80 overflow-y-auto pr-1 scrollbar-transit">
+                <!-- Renderizado dinámicamente desde app.js -->
               </div>
             </div>
           </div>
 
-          <!-- Formulario de Reporte Ciudadano (6 cols) -->
+          <!-- Columna 2: Formulario de Emisión (6 cols) -->
           <div class="lg:col-span-6">
-            <div class="glass-card rounded-2xl p-5 sm:p-6">
-              <h3 class="font-heading font-bold text-sm sm:text-base text-[var(--text-primary)] mb-1">
-                Emitir Alerta a la Comunidad
+            <div class="transit-card p-5">
+              <h3 class="font-heading font-bold text-sm text-[var(--text-primary)] mb-1">
+                Emitir Alerta Ciudadana
               </h3>
               <p class="text-xs text-[var(--text-muted)] mb-4">
-                Tu reporte se publicará en el feed y ayudará a los vecinos en las paradas.
+                El aviso impactará inmediatamente en el feed de los usuarios.
               </p>
 
               <form id="report-form" class="space-y-3 text-xs" novalidate>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label for="report-line" class="block font-semibold text-[var(--text-primary)] mb-1">Línea *</label>
-                    <select id="report-line" required class="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-blue-500">
+                    <label for="report-line" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Línea *</label>
+                    <select id="report-line" required class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-transit)]">
                       <option value="">-- Seleccionar Línea --</option>
                       <option value="linea-1">Línea 1 (UNRC)</option>
                       <option value="linea-2">Línea 2 (Hospital)</option>
@@ -658,8 +739,8 @@
                     </select>
                   </div>
                   <div>
-                    <label for="report-stop" class="block font-semibold text-[var(--text-primary)] mb-1">Garita o Nodo *</label>
-                    <select id="report-stop" required class="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-blue-500">
+                    <label for="report-stop" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Garita *</label>
+                    <select id="report-stop" required class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-transit)]">
                       <option value="">-- Seleccionar Parada --</option>
                       <option value="plaza-roca">Plaza Roca (Centro)</option>
                       <option value="hospital-padua">Hospital Padua</option>
@@ -673,9 +754,9 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label for="report-type" class="block font-semibold text-[var(--text-primary)] mb-1">Motivo *</label>
-                    <select id="report-type" required class="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-blue-500">
-                      <option value="">-- Tipo de Incidencia --</option>
+                    <label for="report-type" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Motivo *</label>
+                    <select id="report-type" required class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-transit)]">
+                      <option value="">-- Incidencia --</option>
                       <option value="Demora Mayor a 20 Minutos">Demora Mayor a 20 Minutos</option>
                       <option value="Colectivo Lleno / No Paró">Colectivo Lleno / No Paró</option>
                       <option value="Desvío por Obras o Cortes">Desvío por Obras o Cortes</option>
@@ -684,19 +765,18 @@
                     </select>
                   </div>
                   <div>
-                    <label for="report-name" class="block font-semibold text-[var(--text-primary)] mb-1">Tu Alias (opcional)</label>
-                    <input type="text" id="report-name" placeholder="Ej: Lucas M." class="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-blue-500">
+                    <label for="report-name" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Alias (opcional)</label>
+                    <input type="text" id="report-name" placeholder="Ej: Pasajero Banda Norte" class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-transit)]">
                   </div>
                 </div>
 
                 <div>
-                  <label for="report-comment" class="block font-semibold text-[var(--text-primary)] mb-1">Detalle o Comentario</label>
-                  <input type="text" id="report-comment" placeholder="Ej: Hubo un corte sobre San Martín, doblan antes..." class="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-blue-500">
+                  <label for="report-comment" class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase">Observación técnica</label>
+                  <input type="text" id="report-comment" placeholder="Detalle puntual de la incidencia..." class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-transit)]">
                 </div>
 
-                <button type="submit" class="w-full py-3 rounded-xl text-xs font-bold text-white btn-glow flex items-center justify-center gap-2 min-h-[44px]">
-                  <i class="fa-solid fa-paper-plane text-xs"></i>
-                  <span>Publicar Alerta Comunitaria</span>
+                <button type="submit" class="w-full py-3 btn-transit text-xs uppercase font-mono tracking-wider">
+                  <span>Publicar Alerta</span>
                 </button>
               </form>
             </div>
@@ -708,85 +788,69 @@
     </section>
 
     <!-- =========================================================================
-         7. TESTIMONIOS DE LA COMUNIDAD
+         7. TESTIMONIOS (MINIMALISTAS SIN AVATARES COLORIDOS)
          ========================================================================= -->
-    <section id="historias" class="py-16 md:py-24 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/30">
+    <section id="historias" class="py-12 md:py-16 border-b border-[var(--border-color)] bg-[var(--bg-card-subtle)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="text-center max-w-2xl mx-auto mb-12">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-3">
-            <i class="fa-solid fa-comment-dots"></i>
-            <span>Experiencias Locales</span>
-          </div>
-          <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-[var(--text-primary)] tracking-tight">
-            Pasajeros en Río Cuarto
+        <div class="max-w-2xl mb-8">
+          <span class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] block mb-1">
+            Comunidad de Pasajeros
+          </span>
+          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+            Uso Diario en Río Cuarto
           </h2>
-          <p class="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-            Usuarios diarios que optimizan sus viajes y trasbordos con BusRío.
-          </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
           <!-- Testimonio 1 -->
-          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-              </div>
-              <p class="text-xs text-[var(--text-secondary)] leading-relaxed italic mb-4">
-                "Antes salía de la UNRC a esperar la Línea 1 sin saber si venía en 5 minutos o en 40. Ahora miro la app antes de salir del aula y llego justo a la garita."
-              </p>
-            </div>
+          <div class="transit-card p-5 flex flex-col justify-between space-y-4">
+            <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+              "Antes salía de la UNRC a esperar la Línea 1 sin saber si venía en 5 minutos o en 40. Ahora miro el monitor antes de salir del aula y llego justo a la garita."
+            </p>
             <div class="flex items-center gap-3 pt-3 border-t border-[var(--border-color)]">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs">
+              <!-- Inicial simple monocroma -->
+              <div class="w-8 h-8 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold text-xs flex items-center justify-center shrink-0">
                 CF
               </div>
               <div>
                 <strong class="text-xs text-[var(--text-primary)] block">Camila F.</strong>
-                <span class="text-[10px] text-[var(--text-muted)]">Estudiante UNRC · Campus</span>
+                <span class="text-[11px] font-mono text-[var(--text-muted)]">Estudiante · Campus UNRC</span>
               </div>
             </div>
           </div>
 
           <!-- Testimonio 2 -->
-          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-              </div>
-              <p class="text-xs text-[var(--text-secondary)] leading-relaxed italic mb-4">
-                "Trabajo en el Hospital San Antonio de Padua. El modo oscuro no encandila de noche en la parada y el conteo regresivo me da total tranquilidad al salir de guardia."
-              </p>
-            </div>
+          <div class="transit-card p-5 flex flex-col justify-between space-y-4">
+            <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+              "Trabajo en el Hospital San Antonio de Padua. El modo oscuro no encandila de noche en la parada y el conteo regresivo me da total previsibilidad al salir de guardia."
+            </p>
             <div class="flex items-center gap-3 pt-3 border-t border-[var(--border-color)]">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold text-xs">
+              <!-- Inicial simple monocroma -->
+              <div class="w-8 h-8 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold text-xs flex items-center justify-center shrink-0">
                 MR
               </div>
               <div>
                 <strong class="text-xs text-[var(--text-primary)] block">Martín R.</strong>
-                <span class="text-[10px] text-[var(--text-muted)]">Enfermero · Hospital Central</span>
+                <span class="text-[11px] font-mono text-[var(--text-muted)]">Personal de Salud · Hospital Central</span>
               </div>
             </div>
           </div>
 
           <!-- Testimonio 3 -->
-          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-              </div>
-              <p class="text-xs text-[var(--text-secondary)] leading-relaxed italic mb-4">
-                "Conectar Banda Norte con Alberdi usando el boleto combinado de 60 minutos me ahorra dos pasajes diarios. La guía es muy clara."
-              </p>
-            </div>
+          <div class="transit-card p-5 flex flex-col justify-between space-y-4">
+            <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+              "Conectar Banda Norte con Alberdi usando el boleto combinado de 60 minutos me ahorra dos pasajes diarios. El cálculo del trasbordo es exacto."
+            </p>
             <div class="flex items-center gap-3 pt-3 border-t border-[var(--border-color)]">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 text-white flex items-center justify-center font-bold text-xs">
+              <!-- Inicial simple monocroma -->
+              <div class="w-8 h-8 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold text-xs flex items-center justify-center shrink-0">
                 GL
               </div>
               <div>
                 <strong class="text-xs text-[var(--text-primary)] block">Gonzalo L.</strong>
-                <span class="text-[10px] text-[var(--text-muted)]">Comerciante · Banda Norte</span>
+                <span class="text-[11px] font-mono text-[var(--text-muted)]">Comerciante · Banda Norte</span>
               </div>
             </div>
           </div>
@@ -797,61 +861,64 @@
     </section>
 
     <!-- =========================================================================
-         8. SECCIÓN EQUIPO FUNDADOR
+         8. SECCIÓN EQUIPO
          ========================================================================= -->
-    <section id="equipo" class="py-16 md:py-24 border-b border-[var(--border-color)]">
+    <section id="equipo" class="py-12 md:py-16 border-b border-[var(--border-color)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="text-center max-w-2xl mx-auto mb-12">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-bold mb-3">
-            <i class="fa-solid fa-users"></i>
-            <span>Equipo Desarrollador</span>
-          </div>
-          <h2 class="font-heading font-extrabold text-2xl sm:text-3xl text-[var(--text-primary)] tracking-tight">
-            BusRío Tech S.A.S.
+        <div class="max-w-2xl mb-8">
+          <span class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] block mb-1">
+            Proyecto Integrador
+          </span>
+          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+            Equipo BusRío Tech S.A.S.
           </h2>
-          <p class="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-            Proyecto desarrollado para la Evaluación Final Integradora (E.F.I.) de Programación II.
+          <p class="text-xs text-[var(--text-secondary)] mt-1">
+            Desarrollado para la Evaluación Final Integradora (E.F.I.) de Programación II · ITEC Río Cuarto.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl">
 
           <!-- Lucas Molina -->
-          <article class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+          <article class="transit-card p-5 flex flex-col justify-between space-y-3">
             <div>
-              <div class="flex items-center gap-4 mb-3">
-                <img src="https://ui-avatars.com/api/?name=Lucas+Molina&background=2563EB&color=fff&size=128" alt="Lucas Molina" class="w-14 h-14 rounded-xl object-cover shadow-md border border-[var(--card-border)]">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold flex items-center justify-center text-sm">
+                  LM
+                </div>
                 <div>
-                  <h3 class="font-heading font-extrabold text-base text-[var(--text-primary)]">Lucas Molina</h3>
-                  <span class="inline-block text-[11px] font-semibold text-blue-500 bg-blue-500/10 px-2.5 py-0.5 rounded-full mt-1">Co-Founder & Lead UI-UX</span>
+                  <h3 class="font-heading font-bold text-sm text-[var(--text-primary)]">Lucas Molina</h3>
+                  <span class="text-[10px] font-mono text-[var(--accent-transit)] uppercase font-bold">Co-Founder & Lead UI-UX</span>
                 </div>
               </div>
               <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Especialista en arquitectura frontend, diseño responsive mobile-first y optimización de interacción en mapas.
+                Arquitectura frontend, interfaces utilitarias, ergonomía responsive e integración de cartografía Leaflet.
               </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)]">
-              Enfoque: Frontend Engineering · Leaflet UX
+            <div class="pt-2.5 border-t border-[var(--border-color)] font-mono text-[10px] text-[var(--text-muted)] uppercase">
+              Área: Frontend Architecture
             </div>
           </article>
 
           <!-- Tadeo -->
-          <article class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+          <article class="transit-card p-5 flex flex-col justify-between space-y-3">
             <div>
-              <div class="flex items-center gap-4 mb-3">
-                <img src="https://ui-avatars.com/api/?name=Tadeo&background=4F46E5&color=fff&size=128" alt="Tadeo" class="w-14 h-14 rounded-xl object-cover shadow-md border border-[var(--card-border)]">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold flex items-center justify-center text-sm">
+                  TA
+                </div>
                 <div>
-                  <h3 class="font-heading font-extrabold text-base text-[var(--text-primary)]">Tadeo</h3>
-                  <span class="inline-block text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full mt-1">Co-Founder & Head of Product</span>
+                  <h3 class="font-heading font-bold text-sm text-[var(--text-primary)]">Tadeo</h3>
+                  <span class="text-[10px] font-mono text-[var(--accent-transit)] uppercase font-bold">Co-Founder & Head of Product</span>
                 </div>
               </div>
               <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Especialista en modelado de datos de transporte urbano, georreferenciación, lógica de frecuencias y régimen tarifario.
+                Modelado de datos de transporte urbano, georreferenciación de paradas, lógica de frecuencias y régimen tarifario.
               </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)]">
-              Enfoque: Data Architecture · Product Logic
+            <div class="pt-2.5 border-t border-[var(--border-color)] font-mono text-[10px] text-[var(--text-muted)] uppercase">
+              Área: Domain Logic & Data Models
             </div>
           </article>
 
@@ -863,119 +930,119 @@
   </main>
 
   <!-- =========================================================================
-       9. FOOTER MULTICOLUMNA
+       9. FOOTER CORPORATIVO PROFUNDO (FONDO OSCURO EN AMBOS MODOS)
        ========================================================================= -->
-  <footer class="bg-[var(--bg-secondary)] border-t border-[var(--border-color)] py-12 transition-colors">
+  <footer class="bg-[#0A0D14] text-slate-300 py-12 border-t border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
 
-        <!-- Columna 1: Marca -->
+        <!-- Columna 1: Marca Corporativa -->
         <div class="col-span-2 space-y-3">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm shadow-md">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center text-xs font-mono font-bold">
               <i class="fa-solid fa-bus"></i>
             </div>
-            <span class="font-heading font-bold text-lg text-[var(--text-primary)]">Bus<span class="text-blue-600">Río</span></span>
+            <span class="font-heading font-bold text-base text-white">Bus<span class="text-[var(--accent-transit)]">Río</span></span>
           </div>
-          <p class="text-xs text-[var(--text-secondary)] max-w-xs leading-relaxed">
-            Monitor de transporte público en tiempo real para Río Cuarto. Georreferenciación de unidades, paradas críticas y alertas colaborativas.
+          <p class="text-xs text-slate-400 max-w-xs leading-relaxed font-sans">
+            Plataforma utilitaria de tránsito urbano en tiempo real para Río Cuarto, Córdoba.
           </p>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[11px] font-bold border border-emerald-500/20">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Servicio Urbano Activo</span>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Telemetría Activa</span>
           </div>
         </div>
 
         <!-- Columna 2: Plataforma -->
         <div>
-          <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-[var(--text-primary)] mb-3">Plataforma</h4>
-          <ul class="space-y-2 text-xs text-[var(--text-secondary)]">
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Centro de Control</a></li>
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Mapa de Ramales</a></li>
-            <li><a href="#trasbordos" class="hover:text-blue-500 transition-colors">Boleto Combinado</a></li>
-            <li><a href="#alertas" class="hover:text-blue-500 transition-colors">Alertas Ciudadanas</a></li>
+          <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3">Módulos</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a href="#monitor" class="hover:text-white transition-all">Centro de Control</a></li>
+            <li><a href="#monitor" class="hover:text-white transition-all">Mapa de Ramales</a></li>
+            <li><a href="#trasbordos" class="hover:text-white transition-all">Boleto Combinado</a></li>
+            <li><a href="#alertas" class="hover:text-white transition-all">Alertas Ciudadanas</a></li>
           </ul>
         </div>
 
-        <!-- Columna 3: Nodos -->
+        <!-- Columna 3: Garitas Clave -->
         <div>
-          <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-[var(--text-primary)] mb-3">Garitas Clave</h4>
-          <ul class="space-y-2 text-xs text-[var(--text-secondary)]">
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Campus UNRC</a></li>
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Hospital Padua</a></li>
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Plaza Roca</a></li>
-            <li><a href="#monitor" class="hover:text-blue-500 transition-colors">Banda Norte</a></li>
+          <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3">Polos Urbanos</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a href="#monitor" class="hover:text-white transition-all">Campus UNRC</a></li>
+            <li><a href="#monitor" class="hover:text-white transition-all">Hospital Central</a></li>
+            <li><a href="#monitor" class="hover:text-white transition-all">Plaza Roca</a></li>
+            <li><a href="#monitor" class="hover:text-white transition-all">Banda Norte</a></li>
           </ul>
         </div>
 
-        <!-- Columna 4: Cátedra -->
+        <!-- Columna 4: Legal / Cátedra -->
         <div>
-          <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-[var(--text-primary)] mb-3">Proyecto E.F.I.</h4>
-          <ul class="space-y-2 text-xs text-[var(--text-secondary)]">
+          <h4 class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3">Académico</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
             <li><span>Programación II · 2026</span></li>
             <li><span>ITEC Río Cuarto</span></li>
             <li><span>Gentle-AI SDD</span></li>
-            <li><a href="mailto:contacto@busrio.com.ar" class="text-blue-500 hover:underline">contacto@busrio.com.ar</a></li>
+            <li><a href="mailto:contacto@busrio.com.ar" class="text-[var(--accent-transit)] hover:underline font-mono">contacto@busrio.com.ar</a></li>
           </ul>
         </div>
 
       </div>
 
       <!-- Barra Inferior -->
-      <div class="pt-6 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-muted)]">
+      <div class="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
         <p>BusRío Tech S.A.S. © 2026 · Río Cuarto, Córdoba, Argentina.</p>
-        <div class="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="hover:text-blue-500 transition-colors" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="hover:text-blue-500 transition-colors" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="hover:text-blue-500 transition-colors" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+        <div class="flex items-center gap-4 text-sm text-slate-400">
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-all" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-all" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-all" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
         </div>
       </div>
     </div>
   </footer>
 
   <!-- =========================================================================
-       MODAL DE DETALLES DE RECORRIDO Y PARADAS (DRAWER GLASS)
+       MODAL DE DETALLES DE RECORRIDO (DRAWER UTILITARIO)
        ========================================================================= -->
   <div id="route-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-line-title">
-    <div id="modal-backdrop" class="fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity"></div>
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
 
     <div class="flex min-h-full items-center justify-center p-4">
-      <div class="relative w-full max-w-lg rounded-2xl bg-[var(--card-bg)] p-6 sm:p-7 border border-[var(--card-border)] shadow-2xl transition-all z-10">
+      <div class="relative w-full max-w-lg rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] transition-all z-10">
 
         <!-- Cabecera del Modal -->
-        <div class="flex items-start justify-between gap-3 pb-4 border-b border-[var(--border-color)]">
-          <div class="flex items-center gap-3">
-            <span id="modal-line-number" class="px-3 py-1 rounded-lg text-white font-heading font-bold text-xs bg-blue-600">Línea</span>
+        <div class="flex items-start justify-between gap-3 pb-3.5 border-b border-[var(--border-color)]">
+          <div class="flex items-center gap-2.5">
+            <span id="modal-line-number" class="px-2.5 py-1 rounded text-slate-950 font-mono font-bold text-xs bg-[var(--accent-transit)]">Línea</span>
             <div>
-              <h3 id="modal-line-title" class="font-heading font-bold text-base text-[var(--text-primary)]">Detalle de Línea</h3>
-              <p id="modal-line-direction" class="text-xs text-[var(--text-secondary)]">Destino</p>
+              <h3 id="modal-line-title" class="font-heading font-bold text-sm sm:text-base text-[var(--text-primary)]">Detalle de Línea</h3>
+              <p id="modal-line-direction" class="text-xs font-mono text-[var(--text-secondary)]">Destino</p>
             </div>
           </div>
-          <button type="button" id="modal-close-btn" class="w-8 h-8 rounded-xl bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)] flex items-center justify-center transition-colors" aria-label="Cerrar modal">
+          <button type="button" id="modal-close-btn" class="w-8 h-8 rounded-lg bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)] flex items-center justify-center transition-all" aria-label="Cerrar modal">
             <i class="fa-solid fa-xmark text-xs"></i>
           </button>
         </div>
 
         <!-- Contenido del Modal -->
-        <div class="py-4 space-y-4">
+        <div class="py-4 space-y-3.5">
           <p id="modal-line-desc" class="text-xs text-[var(--text-secondary)] leading-relaxed"></p>
 
-          <div class="flex items-center gap-3 text-xs">
-            <div class="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] flex-1">
-              <span class="text-[var(--text-muted)] block text-[10px] font-medium">Frecuencia:</span>
+          <div class="flex items-center gap-3 text-xs font-mono">
+            <div class="p-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex-1">
+              <span class="text-[var(--text-muted)] block text-[10px] uppercase">Frecuencia</span>
               <strong id="modal-line-freq" class="text-[var(--text-primary)] font-bold"></strong>
             </div>
-            <div class="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] flex-1">
-              <span class="text-[var(--text-muted)] block text-[10px] font-medium">Estado:</span>
+            <div class="p-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex-1">
+              <span class="text-[var(--text-muted)] block text-[10px] uppercase">Estado</span>
               <strong id="modal-line-status" class="text-[var(--text-primary)] font-bold"></strong>
             </div>
           </div>
 
           <div>
-            <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-[var(--text-muted)] mb-3">
+            <h4 class="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
               Itinerario de Garitas:
             </h4>
-            <div class="max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+            <div class="max-h-48 overflow-y-auto pr-2 scrollbar-transit">
               <ul id="modal-stops-timeline" class="space-y-0">
                 <!-- Paradas generadas desde app.js -->
               </ul>
@@ -984,9 +1051,9 @@
         </div>
 
         <!-- Acción Principal del Modal -->
-        <div class="pt-4 border-t border-[var(--border-color)] flex justify-end gap-2">
-          <button type="button" id="modal-map-action-btn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot text-xs"></i>
+        <div class="pt-3.5 border-t border-[var(--border-color)] flex justify-end">
+          <button type="button" id="modal-map-action-btn" class="px-4 py-2.5 btn-transit text-xs font-mono uppercase flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot"></i>
             <span>Trazar en Mapa</span>
           </button>
         </div>
@@ -995,7 +1062,7 @@
     </div>
   </div>
 
-  <!-- Contenedor Responsive de Toasts (Optimizado para Celular y Escritorio) -->
+  <!-- Contenedor Responsive de Toasts -->
   <div id="toast-container" class="fixed bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6 z-[2000] flex flex-col gap-2 pointer-events-none items-center sm:items-end"></div>
 
   <!-- Scripts -->

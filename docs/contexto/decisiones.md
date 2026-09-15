@@ -97,4 +97,22 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
   3. **Notificaciones Responsivas**: Contenedor adaptativo `bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6` con tarjetas `w-full sm:w-auto max-w-sm`, botón de cierre explícito y textos concisos.
 * **Consecuencias**: Interfaz sumamente ágil, ergonómica para celulares y computadoras, sin saltos visuales molestos y con retroalimentación inmediata sobre la cartografía.
 
+---
+
+## [ADR-009] Adopción de Sistema de Diseño Utilitario y Brutalista de Tránsito
+* **Fecha y Hora**: 2026-09-15 15:40 UTC-3
+* **Estado**: Aceptado
+* **Contexto**: Se requirió erradicar por completo la estética genérica de plantillas IA (degradados, sombras difusas grandes, manchas de desenfoque y colores pastel dispersos), reemplazándola por una estética moderna, utilitaria y brutalista inspirada en aplicaciones reales de control de tránsito urbano.
+* **Decisión**:
+  1. **Tipografía Utilitaria**: Adopción de `Space Grotesk` para títulos fuertes y estructurados, `Inter` para texto corrido y `JetBrains Mono` para datos, horarios y contadores de minutos.
+  2. **Esquema de Color**:
+     - Modo Oscuro (Predeterminado): Fondo asfalto (`#0F111A`), tarjetas gris oscuro (`#1E293B`), bordes finos (`#334155`), textos blanco tiza (`#F8FAFC`) y gris claro (`#94A3B8`).
+     - Modo Claro: Fondo off-white (`#FAF9F6`), tarjetas blanco puro (`#FFFFFF`), bordes (`#E2E8F0`), textos azul asfalto (`#0F172A`).
+     - Acento Único: Amarillo Tránsito (`#F59E0B`), eliminando colores pastel dispersos. Se reserva rojo suave (`#EF4444`) exclusivamente para alertas críticas y desvíos en vivo.
+  3. **Hero Asimétrico en Capas**: 2 columnas (Izquierda: H1 y Buscador de Recorridos en tarjeta UI; Derecha: Mockup en capas absolutas simulando mapa base y tarjetas flotantes de arribo).
+  4. **Tarjetas sin Sombras Grandes**: `border-radius: 12px`, borde sólido de 1px, elevación sutil de 2px en hover (`hover:-translate-y-0.5`).
+  5. **Testimonios y Footer**: Iniciales monocromas sin degradados; footer corporativo profundo (`#0A0D14`) en ambos modos.
+* **Consecuencias**: Look & feel de aplicación de tránsito seria, sólida y profesional, con altísima legibilidad y cero clichés visuales.
+
+
 

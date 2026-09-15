@@ -91,7 +91,23 @@
   - Resuelta la lejanía entre monitor y mapa unificándolos en un Centro de Control interactivo split-view (`lg:grid-cols-12`: 5 cols panel de líneas, 7 cols mapa interactivo).
   - Eliminados los saltos de tamaño al filtrar líneas fijando la altura del contenedor (`h-[600px]`) con scrollbar delgada y esqueletos de idéntica proporción (CLS = 0).
   - Selector segmentado en celulares (`[ Líneas ]` / `[ Mapa ]`) con cambio automático al pulsar "Trazar" y recálculo de azulejos Leaflet (`invalidateSize`).
-  - Toasts 100% responsivos adaptados al viewport móvil (`bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6 max-w-sm`) con botón de cierre manual y auto-descarte limpio.
 - **Estado**: Finalizado con éxito y verificado.
+
+---
+
+### [2026-09-15] - Sistema de Diseño Utilitario y Brutalista de Tránsito (v2)
+- **ID**: `mem_busrio_v2_brutalist_transit_design`
+- **Tipo**: Refactor Visual & Erradicación de Estética IA Genérica
+- **Alcance**: Rama `v2`, `index.html`, `js/app.js`, `docs/contexto/`
+- **Contenido**:
+  - Eliminados todos los degradados, sombras difusas grandes, manchas de desenfoque y colores pastel aleatorios.
+  - Implementado sistema utilitario brutalista con tipografía `Space Grotesk` + `Inter` + `JetBrains Mono`.
+  - Modo Oscuro Asfalto (`#0F111A`) predeterminado con tarjetas `#1E293B` y bordes finos `#334155`. Modo Claro Off-white (`#FAF9F6`).
+  - Acento único: Amarillo Tránsito (`#F59E0B`), reservando rojo suave exclusivamente para incidentes en vivo.
+  - Hero asimétrico en 2 columnas: Buscador UI con campos estructurados y mockup de capas de despacho de tránsito.
+  - Tarjetas rígidas con radio 12px y 1px de borde; mapa integrado técnico; testimonios monocromos; footer corporativo profundo.
+  - Documentado en ADR-009 en `docs/contexto/decisiones.md`.
+- **Estado**: Finalizado con éxito y verificado.
+
 
 
