@@ -1,7 +1,8 @@
 /**
- * BusRío - Application Logic
- * Lógica modular interactiva: filtros, renderizado reactivo, mapa Leaflet,
- * formulario de alertas ciudadanas y alternancia de Modo Claro/Oscuro.
+ * BusRío v2 - Application Logic (Lattice-inspired UI/UX)
+ * Lógica modular interactiva con estética editorial B2B SaaS:
+ * Filtros de garitas en cápsulas pill, renderizado reactivo con 4 estados UI,
+ * mapa Leaflet, formulario de alertas ciudadanas y alternancia de tema.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,19 +40,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isDark) {
         document.documentElement.classList.add('dark');
         localStorage.setItem('busrio_theme', 'dark');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400';
-        if (themeText) themeText.textContent = 'Modo Claro';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-300 text-xs';
+        if (themeText) themeText.textContent = 'Claro';
       } else {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('busrio_theme', 'light');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-slate-600';
-        if (themeText) themeText.textContent = 'Modo Oscuro';
+        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-stone-600 text-xs';
+        if (themeText) themeText.textContent = 'Oscuro';
       }
     }
 
     const savedTheme = localStorage.getItem('busrio_theme');
-    // Si no hay preferencia guardada, por defecto se usa Dark Mode (ADR-004)
-    const isDark = savedTheme ? savedTheme === 'dark' : true;
+    // Por defecto inicia en Modo Claro o el guardado
+    const isDark = savedTheme ? savedTheme === 'dark' : false;
     applyTheme(isDark);
 
     if (themeToggleBtn) {
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3. TABS Y FILTROS POR GARITA
+     3. TABS Y FILTROS POR GARITA (CÁPSULA PILL SEGMENTADA LATTICE)
      ========================================================================== */
   function initStopFilterTabs() {
     const tabsContainer = document.getElementById('stop-tabs-container');
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tabsContainer.innerHTML = '';
 
     // Botón "Todas las Paradas"
-    const allBtn = createTabButton('all', 'Todas las Paradas', 'fa-solid fa-bus', true);
+    const allBtn = createTabButton('all', 'Todas las Paradas', 'fa-solid fa-layer-group', true);
     tabsContainer.appendChild(allBtn);
 
     // Botones por cada parada crítica de Río Cuarto
@@ -122,23 +123,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-stop-id', id);
-    btn.className = `stop-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap min-h-[44px] ${
+    btn.className = `stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] ${
       isActive
-        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]'
-        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+        ? 'bg-[#0A6C44] text-white shadow-sm font-semibold scale-[1.02]'
+        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
     }`;
-    btn.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
+    btn.innerHTML = `<i class="${iconClass} text-[11px]"></i><span>${label}</span>`;
 
     btn.addEventListener('click', () => {
       document.querySelectorAll('.stop-tab-btn').forEach(b => {
-        b.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap min-h-[44px] bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700';
+        b.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800';
       });
-      btn.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap min-h-[44px] bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]';
+      btn.className = 'stop-tab-btn flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[38px] bg-[#0A6C44] text-white shadow-sm scale-[1.02]';
 
       state.selectedStop = id;
       triggerCardRenderWithLoading();
 
-      // Si se selecciona una parada específica, centrar en el mapa
+      // Centrado suave en el mapa al seleccionar parada
       if (id !== 'all' && state.map) {
         const targetStop = BUSRIO_DATA.stops.find(s => s.id === id);
         if (targetStop) {
@@ -168,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (monitorSearchInput) monitorSearchInput.value = query;
       triggerCardRenderWithLoading();
 
-      // Scroll suave hacia la sección del monitor
       const monitorSection = document.getElementById('monitor');
       if (monitorSection) {
         monitorSection.scrollIntoView({ behavior: 'smooth' });
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     5. RENDERIZADO DE TARJETAS Y 4 ESTADOS DE UI (DoD)
+     5. RENDERIZADO DE TARJETAS LATTICE (4 ESTADOS UI COMPROBADOS)
      ========================================================================== */
   function triggerCardRenderWithLoading() {
     const gridContainer = document.getElementById('lines-grid');
@@ -207,11 +207,11 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyContainer.classList.add('hidden');
     skeletonContainer.classList.remove('hidden');
 
-    // Breve transición asíncrona simulada de 200ms para feedback visual
+    // Transición visual ágil de 180ms
     setTimeout(() => {
       skeletonContainer.classList.add('hidden');
       renderCards();
-    }, 220);
+    }, 180);
   }
 
   function initCardGrid() {
@@ -223,13 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyContainer = document.getElementById('lines-empty');
     if (!gridContainer || !emptyContainer) return;
 
-    // Filtrado de líneas
     const filteredLines = BUSRIO_DATA.lines.filter(line => {
-      // Filtro por Parada
       const matchesStop = (state.selectedStop === 'all') ||
         (BUSRIO_DATA.stops.find(s => s.id === state.selectedStop)?.lines.includes(line.id));
 
-      // Filtro por Búsqueda
       const matchesQuery = !state.searchQuery ||
         line.number.toLowerCase().includes(state.searchQuery) ||
         line.name.toLowerCase().includes(state.searchQuery) ||
@@ -271,102 +268,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createLineCard(line) {
     const article = document.createElement('article');
-    article.className = 'group relative bg-white dark:bg-slate-800/95 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between';
+    article.className = 'group relative bg-white dark:bg-[#131B2E] border border-stone-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between';
 
-    // Estado visual del tráfico
-    let statusBadgeColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-    let statusIcon = 'fa-solid fa-circle-check';
+    // Estados visuales tipo badge Lattice
+    let statusBadgeColor = 'bg-emerald-50 text-[#0A6C44] border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
+    let statusDotColor = 'bg-[#0A6C44] dark:bg-emerald-400';
     let pulseClass = line.etaMinutes <= 5 ? 'animate-pulse' : '';
 
     if (line.status === 'warning') {
-      statusBadgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      statusIcon = 'fa-solid fa-triangle-exclamation';
+      statusBadgeColor = 'bg-amber-50 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60';
+      statusDotColor = 'bg-amber-500';
     } else if (line.status === 'danger') {
-      statusBadgeColor = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
-      statusIcon = 'fa-solid fa-road-barrier';
+      statusBadgeColor = 'bg-rose-50 text-rose-800 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60';
+      statusDotColor = 'bg-rose-500';
     }
 
     article.innerHTML = `
       <div>
-        <!-- Cabecera de la Tarjeta -->
-        <div class="flex items-start justify-between gap-3 mb-4">
-          <div class="flex items-center gap-2.5">
-            <span class="inline-flex items-center justify-center px-3 py-1 rounded-xl font-heading font-bold text-base text-white shadow-sm ${line.bgClass}">
+        <!-- Fila Superior: Badge de Línea + ETA Pill -->
+        <div class="flex items-start justify-between gap-3 mb-5">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full font-heading font-bold text-xs text-white shadow-sm ${line.bgClass}">
               ${line.number}
             </span>
             <div>
-              <h3 class="font-heading font-semibold text-slate-900 dark:text-white text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 class="font-heading font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-[#0A6C44] dark:group-hover:text-emerald-400 transition-colors">
                 ${line.name}
               </h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                <i class="fa-solid fa-clock text-[10px]"></i> ${line.frequency}
-              </p>
+              <span class="text-[11px] text-stone-500 dark:text-slate-400 font-medium">Frecuencia: ${line.frequency}</span>
             </div>
           </div>
 
-          <!-- Tiempo estimado de llegada (ETA) -->
-          <div class="text-right flex flex-col items-end">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${pulseClass} bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50">
-              <i class="fa-solid fa-bolt text-[10px]"></i>
-              <span>${line.etaMinutes} min</span>
-            </span>
-            <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Tiempo estimado</span>
+          <!-- Chip de Arribo (ETA) -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${pulseClass} bg-stone-100 text-stone-900 dark:bg-slate-800 dark:text-emerald-300 border border-stone-200 dark:border-slate-700">
+            <span class="w-2 h-2 rounded-full ${statusDotColor}"></span>
+            <span>${line.etaMinutes} min</span>
           </div>
         </div>
 
-        <!-- Garita y Destino -->
-        <div class="space-y-2 py-3 border-y border-slate-100 dark:border-slate-700/50 my-3">
-          <div class="flex items-start gap-2 text-xs">
-            <i class="fa-solid fa-location-dot text-rose-500 mt-0.5"></i>
+        <!-- Trayecto y Garita -->
+        <div class="space-y-2.5 py-4 border-y border-stone-100 dark:border-slate-800/80 my-2">
+          <div class="flex items-start gap-2.5 text-xs">
+            <div class="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-[#0A6C44] dark:text-emerald-400 shrink-0 mt-0.5">
+              <i class="fa-solid fa-location-dot text-[10px]"></i>
+            </div>
             <div>
-              <span class="text-slate-400 dark:text-slate-400 text-[11px] block">Parada consultada:</span>
-              <strong class="text-slate-800 dark:text-slate-200 font-medium">${line.stopName}</strong>
+              <span class="text-[11px] text-stone-400 dark:text-slate-500 block font-medium">Parada:</span>
+              <strong class="text-slate-800 dark:text-slate-200 font-semibold">${line.stopName}</strong>
             </div>
           </div>
-          <div class="flex items-start gap-2 text-xs">
-            <i class="fa-solid fa-arrow-right-long text-blue-500 mt-0.5"></i>
+          <div class="flex items-start gap-2.5 text-xs">
+            <div class="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </div>
             <div>
-              <span class="text-slate-400 dark:text-slate-400 text-[11px] block">Destino final:</span>
-              <span class="text-slate-700 dark:text-slate-300">${line.direction}</span>
+              <span class="text-[11px] text-stone-400 dark:text-slate-500 block font-medium">Destino:</span>
+              <span class="text-slate-700 dark:text-slate-300 font-medium">${line.direction}</span>
             </div>
           </div>
         </div>
 
-        <!-- Badges de Estado y Accesibilidad -->
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border ${statusBadgeColor}">
-            <i class="${statusIcon} text-[10px]"></i>
+        <!-- Chips de Estado y Accesibilidad -->
+        <div class="flex flex-wrap items-center gap-2 mt-4 mb-5">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${statusBadgeColor}">
+            <span class="w-1.5 h-1.5 rounded-full ${statusDotColor}"></span>
             <span>${line.statusLabel}</span>
           </span>
 
           ${line.accessible ? `
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Unidad con rampa accesible">
-              <i class="fa-solid fa-wheelchair text-[11px]"></i>
-              <span>Rampa</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 dark:bg-slate-800 dark:text-slate-300 border border-stone-200 dark:border-slate-700" title="Unidad con rampa automática">
+              <i class="fa-solid fa-wheelchair text-[11px] text-[#0A6C44] dark:text-emerald-400"></i>
+              <span>Rampa accesible</span>
             </span>
           ` : `
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700" title="Sin rampa">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs text-stone-400 dark:text-slate-500 border border-stone-200/70 dark:border-slate-800" title="Piso convencional">
               <span>Piso Convencional</span>
             </span>
           `}
         </div>
       </div>
 
-      <!-- Botones de Acción -->
+      <!-- Botones de Acción Estilo Lattice -->
       <div class="flex items-center gap-2 pt-2">
-        <button type="button" class="view-route-btn flex-1 min-h-[44px] px-3 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white dark:bg-slate-700/60 dark:hover:bg-blue-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2" data-line-id="${line.id}">
-          <i class="fa-solid fa-route"></i>
+        <button type="button" class="view-route-btn flex-1 min-h-[44px] px-4 py-2.5 bg-stone-900 hover:bg-[#0A6C44] text-white dark:bg-slate-800 dark:hover:bg-[#0A6C44] dark:text-white rounded-full text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm" data-line-id="${line.id}">
+          <i class="fa-solid fa-route text-xs"></i>
           <span>Ver Recorrido</span>
         </button>
 
-        <button type="button" class="locate-map-btn min-h-[44px] px-3.5 py-2 bg-blue-50 hover:bg-blue-600 hover:text-white dark:bg-blue-900/30 dark:hover:bg-blue-600 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center" title="Localizar en Mapa" data-line-id="${line.id}">
+        <button type="button" class="locate-map-btn min-h-[44px] px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full text-xs font-semibold transition-all duration-200 flex items-center justify-center border border-stone-200 dark:border-slate-700" title="Localizar en Mapa" data-line-id="${line.id}">
           <i class="fa-solid fa-map-location-dot"></i>
           <span class="sr-only">Localizar en mapa</span>
         </button>
       </div>
     `;
 
-    // Event listeners de la tarjeta
     const viewRouteBtn = article.querySelector('.view-route-btn');
     if (viewRouteBtn) {
       viewRouteBtn.addEventListener('click', () => openLineModal(line));
@@ -389,26 +384,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapContainer = document.getElementById('leaflet-map');
     if (!mapContainer || typeof L === 'undefined') return;
 
-    // Centrado en la Ciudad de Río Cuarto
     state.map = L.map('leaflet-map', {
       center: [BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng],
       zoom: BUSRIO_DATA.cityCenter.zoom,
       zoomControl: true,
-      scrollWheelZoom: false // Evita atrapar el scroll de la página en móvil
+      scrollWheelZoom: false
     });
 
-    // Azulejos de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> | BusRío'
     }).addTo(state.map);
 
-    // Render de paradas como marcadores personalizados
     BUSRIO_DATA.stops.forEach(stop => {
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-          <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white ring-2 ring-blue-500/50 cursor-pointer transition-transform hover:scale-110">
+          <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-[#0A6C44] text-white shadow-lg border-2 border-white ring-2 ring-[#0A6C44]/40 cursor-pointer transition-transform hover:scale-110">
             <i class="fa-solid fa-bus text-xs"></i>
           </div>
         `,
@@ -418,18 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const marker = L.marker(stop.coords, { icon: customIcon }).addTo(state.map);
 
-      // Popup informativo con estilo limpio
       const popupContent = `
-        <div class="p-2 font-sans">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600">${stop.type}</span>
-          <h4 class="font-heading font-bold text-slate-900 text-sm mt-0.5">${stop.name}</h4>
+        <div class="p-2.5 font-sans">
+          <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-[#0A6C44] bg-emerald-50 px-2 py-0.5 rounded-full mb-1">${stop.type}</span>
+          <h4 class="font-heading font-bold text-slate-900 text-sm mt-1">${stop.name}</h4>
           <p class="text-xs text-slate-500 mt-1">${stop.address}</p>
-          <div class="mt-2 pt-2 border-t border-slate-200">
-            <span class="text-[11px] font-semibold text-slate-700">Líneas disponibles:</span>
-            <div class="flex flex-wrap gap-1 mt-1">
+          <div class="mt-2.5 pt-2.5 border-t border-slate-200">
+            <span class="text-[11px] font-semibold text-slate-700">Líneas en esta parada:</span>
+            <div class="flex flex-wrap gap-1 mt-1.5">
               ${stop.lines.map(lineId => {
                 const l = BUSRIO_DATA.lines.find(item => item.id === lineId);
-                return l ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
+                return l ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
               }).join('')}
             </div>
           </div>
@@ -439,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
       state.stopMarkers[stop.id] = marker;
     });
 
-    // Trazado de recorridos de las líneas en capas polilíneas
     BUSRIO_DATA.lines.forEach(line => {
       if (line.routeCoords && line.routeCoords.length > 0) {
         const polyline = L.polyline(line.routeCoords, {
@@ -454,7 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Botón de recentrado en Río Cuarto
     const resetViewBtn = document.getElementById('map-reset-btn');
     if (resetViewBtn) {
       resetViewBtn.addEventListener('click', () => {
@@ -462,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Invalidar dimensiones ante redimensionamiento de ventana (Gotcha 5)
     window.addEventListener('resize', () => {
       if (state.map) state.map.invalidateSize();
     });
@@ -481,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. MODAL DE DETALLES DE RECORRIDO
+     7. MODAL DE DETALLES DE RECORRIDO (LATTICE DRAWER STYLE)
      ========================================================================== */
   function initModal() {
     const modal = document.getElementById('route-modal');
@@ -497,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', closeModal);
 
-    // Cierre accesible con tecla Escape
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
         closeModal();
@@ -509,16 +496,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('route-modal');
     if (!modal) return;
 
-    // Llenado de contenido dinámico
     document.getElementById('modal-line-number').textContent = line.number;
-    document.getElementById('modal-line-number').className = `px-3 py-1 rounded-xl text-white font-heading font-bold text-base ${line.bgClass}`;
+    document.getElementById('modal-line-number').className = `px-3.5 py-1.5 rounded-full text-white font-heading font-bold text-xs ${line.bgClass}`;
     document.getElementById('modal-line-title').textContent = line.name;
     document.getElementById('modal-line-direction').textContent = line.direction;
     document.getElementById('modal-line-desc').textContent = line.description;
     document.getElementById('modal-line-freq').textContent = line.frequency;
     document.getElementById('modal-line-status').textContent = line.statusLabel;
 
-    // Timeline de paradas
     const stopsListContainer = document.getElementById('modal-stops-timeline');
     if (stopsListContainer) {
       stopsListContainer.innerHTML = '';
@@ -529,19 +514,18 @@ document.addEventListener('DOMContentLoaded', () => {
         stopItem.className = 'relative flex items-center gap-4 pb-4 last:pb-0';
         stopItem.innerHTML = `
           <div class="relative z-10 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-            isFirst ? 'bg-emerald-500 text-white' : isLast ? 'bg-rose-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+            isFirst ? 'bg-[#0A6C44] text-white' : isLast ? 'bg-rose-500 text-white' : 'bg-stone-200 dark:bg-slate-700 text-stone-700 dark:text-slate-300'
           }">
             ${idx + 1}
           </div>
-          <span class="text-sm font-medium ${isFirst || isLast ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}">
-            ${stopName} ${isFirst ? '<span class="text-xs text-emerald-600 dark:text-emerald-400 font-normal">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-xs text-rose-600 dark:text-rose-400 font-normal">(Destino)</span>' : ''}
+          <span class="text-xs font-medium ${isFirst || isLast ? 'font-bold text-slate-900 dark:text-white' : 'text-stone-600 dark:text-slate-300'}">
+            ${stopName} ${isFirst ? '<span class="text-[11px] text-[#0A6C44] dark:text-emerald-400 font-normal">(Cabecera)</span>' : ''} ${isLast ? '<span class="text-[11px] text-rose-600 dark:text-rose-400 font-normal">(Destino)</span>' : ''}
           </span>
         `;
         stopsListContainer.appendChild(stopItem);
       });
     }
 
-    // Botón para ver en mapa desde el modal
     const modalMapBtn = document.getElementById('modal-map-action-btn');
     if (modalMapBtn) {
       modalMapBtn.onclick = () => {
@@ -556,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     8. ALERTA CIUDADANA Y FORMULARIO (DoD: ERROR & SUCCESS STATES)
+     8. ALERTA CIUDADANA Y FORMULARIO (LATTICE PILL CARDS)
      ========================================================================== */
   function initAlertsFeed() {
     const feedContainer = document.getElementById('alerts-feed-container');
@@ -567,7 +551,6 @@ document.addEventListener('DOMContentLoaded', () => {
       feedContainer.appendChild(createAlertCard(alert));
     });
 
-    // Botones de reporte en 1-clic
     document.querySelectorAll('.quick-report-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const incidentText = btn.getAttribute('data-incident');
@@ -583,28 +566,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createAlertCard(alert) {
     const item = document.createElement('div');
-    const badgeColor = alert.type === 'danger' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' :
-                       alert.type === 'warning' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
-                       'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-    const iconClass = alert.type === 'danger' ? 'fa-solid fa-triangle-exclamation' :
-                      alert.type === 'warning' ? 'fa-solid fa-users' : 'fa-solid fa-circle-check';
+    const badgeColor = alert.type === 'danger' ? 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60' :
+                       alert.type === 'warning' ? 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60' :
+                       'bg-emerald-50 text-[#0A6C44] border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
+    const dotColor = alert.type === 'danger' ? 'bg-rose-500' :
+                     alert.type === 'warning' ? 'bg-amber-500' : 'bg-[#0A6C44]';
 
-    item.className = 'p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 shadow-sm transition-all hover:border-blue-400';
+    item.className = 'p-5 rounded-2xl bg-white dark:bg-[#131B2E] border border-stone-200/90 dark:border-slate-800 shadow-sm transition-all hover:border-[#0A6C44]/40';
     item.innerHTML = `
-      <div class="flex items-start justify-between gap-3 mb-2">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeColor}">
-            <i class="${iconClass} text-[10px]"></i>
+      <div class="flex items-start justify-between gap-3 mb-2.5">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor}">
+            <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
             <span>${alert.line}</span>
           </span>
-          <h4 class="font-heading font-bold text-slate-800 dark:text-slate-100 text-sm">${alert.title}</h4>
+          <h4 class="font-heading font-bold text-slate-900 dark:text-white text-sm">${alert.title}</h4>
         </div>
-        <span class="text-[11px] text-slate-400 whitespace-nowrap">${alert.time}</span>
+        <span class="text-[11px] text-stone-400 font-medium whitespace-nowrap">${alert.time}</span>
       </div>
-      <p class="text-xs text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">${alert.description}</p>
-      <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/40">
-        <span><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${alert.stop}</span>
-        <span><i class="fa-solid fa-user-shield text-emerald-500 mr-1"></i>${alert.author}</span>
+      <p class="text-xs text-stone-600 dark:text-slate-300 mb-3 leading-relaxed">${alert.description}</p>
+      <div class="flex items-center justify-between text-[11px] text-stone-500 dark:text-slate-400 pt-2.5 border-t border-stone-100 dark:border-slate-800">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#0A6C44]"></i>${alert.stop}</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-500"></i>${alert.author}</span>
       </div>
     `;
     return item;
@@ -615,7 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!form) return;
 
     form.addEventListener('submit', (e) => {
-      // Estado 3: Prevención de recarga (Gotcha 3 de errores-conocidos.md)
       e.preventDefault();
 
       const lineSelect = document.getElementById('report-line');
@@ -624,34 +606,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const commentInput = document.getElementById('report-comment');
       const nameInput = document.getElementById('report-name');
 
-      // Limpieza previa de errores
       clearFormErrors();
 
-      // Validación estricta
       let hasError = false;
 
       if (!lineSelect.value) {
-        showFieldError(lineSelect, 'Por favor selecciona la línea de colectivo.');
+        showFieldError(lineSelect, 'Selecciona la línea de colectivo.');
         hasError = true;
       }
 
       if (!stopSelect.value) {
-        showFieldError(stopSelect, 'Por favor selecciona la parada o nodo de incidencia.');
+        showFieldError(stopSelect, 'Selecciona la garita o nodo.');
         hasError = true;
       }
 
       if (!typeSelect.value) {
-        showFieldError(typeSelect, 'Por favor indica el tipo de incidencia.');
+        showFieldError(typeSelect, 'Indica el tipo de incidencia.');
         hasError = true;
       }
 
-      // Estado de ERROR
       if (hasError) {
-        showToast('Por favor completa todos los campos requeridos marcados en rojo.', 'error');
+        showToast('Completa los campos requeridos marcados en rojo.', 'error');
         return;
       }
 
-      // Estado de ÉXITO
       const selectedLineObj = BUSRIO_DATA.lines.find(l => l.id === lineSelect.value);
       const selectedStopObj = BUSRIO_DATA.stops.find(s => s.id === stopSelect.value);
 
@@ -661,19 +639,17 @@ document.addEventListener('DOMContentLoaded', () => {
         title: typeSelect.value,
         line: selectedLineObj ? selectedLineObj.number : 'Línea Urbana',
         stop: selectedStopObj ? selectedStopObj.name : stopSelect.value,
-        author: nameInput.value.trim() ? `${nameInput.value.trim()} (Pasajero)` : 'Pasajero Anónimo',
+        author: nameInput.value.trim() ? `${nameInput.value.trim()} (Pasajero)` : 'Pasajero Verificado',
         time: 'Recién ahora',
         description: commentInput.value.trim() || `Reporte de ${typeSelect.value} en garita de Río Cuarto emitido desde la PWA.`
       };
 
-      // Guardar en mock store e insertar al inicio del feed
       BUSRIO_DATA.alerts.unshift(newAlert);
       const feedContainer = document.getElementById('alerts-feed-container');
       if (feedContainer) {
         feedContainer.prepend(createAlertCard(newAlert));
       }
 
-      // Limpiar formulario y dar feedback
       form.reset();
       showToast('¡Alerta comunitaria publicada con éxito! Gracias por colaborar con los usuarios de Río Cuarto.', 'success');
     });
@@ -681,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showFieldError(field, message) {
     field.classList.add('border-rose-500', 'focus:ring-rose-500');
-    field.classList.remove('border-slate-300', 'dark:border-slate-600');
+    field.classList.remove('border-stone-300', 'dark:border-slate-700');
     const parent = field.parentElement;
     const errorMsg = document.createElement('p');
     errorMsg.className = 'field-error-text text-rose-500 text-xs mt-1 font-medium';
@@ -693,44 +669,42 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.field-error-text').forEach(el => el.remove());
     document.querySelectorAll('#report-form select, #report-form input').forEach(field => {
       field.classList.remove('border-rose-500', 'focus:ring-rose-500');
-      field.classList.add('border-slate-300', 'dark:border-slate-600');
+      field.classList.add('border-stone-300', 'dark:border-slate-700');
     });
   }
 
   /* ==========================================================================
-     9. TOAST DE NOTIFICACIÓN FLOTANTE INTERACTIVO
+     9. TOAST DE NOTIFICACIÓN FLOTANTE (ESTILO PILL LATTICE)
      ========================================================================== */
   function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
       container.id = 'toast-container';
-      container.className = 'fixed bottom-5 right-5 z-[2000] flex flex-col gap-2 pointer-events-none';
+      container.className = 'fixed bottom-6 right-6 z-[2000] flex flex-col gap-2.5 pointer-events-none';
       document.body.appendChild(container);
     }
 
     const toast = document.createElement('div');
-    const bgClass = type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-600/30' :
-                    type === 'error' ? 'bg-rose-600 text-white shadow-rose-600/30' :
-                    'bg-slate-900 text-white dark:bg-blue-600 shadow-blue-600/30';
+    const bgClass = type === 'success' ? 'bg-[#0A6C44] text-white shadow-emerald-950/20' :
+                    type === 'error' ? 'bg-rose-600 text-white shadow-rose-950/20' :
+                    'bg-stone-900 text-white dark:bg-slate-800 shadow-black/20';
     const icon = type === 'success' ? 'fa-solid fa-circle-check' :
                  type === 'error' ? 'fa-solid fa-circle-xmark' :
                  'fa-solid fa-circle-info';
 
-    toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg font-sans text-sm font-medium transition-all duration-300 translate-y-4 opacity-0 ${bgClass}`;
+    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-full shadow-xl font-sans text-xs font-semibold tracking-wide transition-all duration-300 translate-y-4 opacity-0 border border-white/10 ${bgClass}`;
     toast.innerHTML = `
-      <i class="${icon} text-base"></i>
+      <i class="${icon} text-sm"></i>
       <span>${message}</span>
     `;
 
     container.appendChild(toast);
 
-    // Animación de entrada
     requestAnimationFrame(() => {
       toast.classList.remove('translate-y-4', 'opacity-0');
     });
 
-    // Auto-destrucción a los 3.5 segundos
     setTimeout(() => {
       toast.classList.add('translate-y-4', 'opacity-0');
       setTimeout(() => toast.remove(), 300);
@@ -741,17 +715,14 @@ document.addEventListener('DOMContentLoaded', () => {
      10. SIMULACIÓN DE CUENTA REGRESIVA DE LLEGADA (ETA TICKER)
      ========================================================================== */
   function initLiveCountdown() {
-    // Cada 40 segundos, decrementa levemente o refresca los minutos de arribo para sensación de tiempo real
     setInterval(() => {
       BUSRIO_DATA.lines.forEach(line => {
         if (line.etaMinutes > 1) {
           line.etaMinutes -= 1;
         } else {
-          // Se resetea simulando la siguiente unidad
           line.etaMinutes = Math.floor(Math.random() * 8) + 6;
         }
       });
-      // Si el usuario no está filtrando activamente, actualizar tarjetas silenciosamente
       if (!state.searchQuery && state.selectedStop === 'all') {
         renderCards();
       }

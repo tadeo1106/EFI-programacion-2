@@ -53,3 +53,18 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
 * **Contexto**: La consigna de la EFI de Programación II exige un sitio completo enfocado exclusivamente en Frontend, prohibiendo expresamente la necesidad de montar backends o bases de datos complejas.
 * **Decisión**: Estructurar un Data Store en memoria dentro de JavaScript con datos reales y fidedignos de Río Cuarto (recorridos hacia UNRC, Hospital, Banda Norte, Alberdi, Plaza Roca), simulando el paso del tiempo en los minutos de llegada de cada colectivo.
 * **Consecuencias**: Proyecto 100% portable, autónomo, capaz de ejecutarse abriendo directamente el archivo `index.html` en cualquier navegador web.
+
+---
+
+## [ADR-006] Rediseño de UI/UX Editorial Inspirado en Lattice.com (Rama v2)
+* **Fecha y Hora**: 2026-09-15 13:45 UTC-3
+* **Estado**: Aceptado
+* **Contexto**: El usuario solicitó evolucionar la presentación visual en una nueva rama `v2` adoptando el lenguaje visual de clase mundial de la plataforma Lattice (https://lattice.com/).
+* **Decisión**:
+  1. Conservar intactos el 100% de las reglas de negocio, datos mock de Río Cuarto, endpoints y funcionalidades interactivas (monitor, mapa, alertas, trasbordos, equipo).
+  2. Implementar los tokens de diseño distintivos de Lattice:
+     - Paleta con fondo cálido "Warm Paper" (`#FAF9F5`), superficies blancas prístinas, acentos verde bosque Lattice (`#0A6C44`), toques sutiles de gradiente arcoíris/aurora, y modo oscuro en carbón/obsidiana (`#0B0F17`).
+     - Tipografía geométrica editorial de alta densidad (`Plus Jakarta Sans` y `Inter`).
+     - Componentes con bordes curvos suaves (`rounded-3xl`), sombras difusas tenues y píldoras (`rounded-full`) para badges y botones.
+     - Ticker editorial de instituciones conectadas y disposición tipo Bento Grid para valor agregado.
+* **Consecuencias**: Interfaz corporativa moderna de estándar B2B SaaS internacional, manteniendo la ergonomía móvil y la identidad riocuartense de BusRío.
