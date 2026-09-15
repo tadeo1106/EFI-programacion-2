@@ -82,3 +82,19 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
   4. Respetar estrictamente los 4 estados de UI (⏳ Loading skeleton, 📭 Empty state, ❌ Error validation, ✅ Success render) en las tarjetas de monitoreo y alertas ciudadanas.
 * **Consecuencias**: Estética de producto SaaS de élite, cero flash de tema no deseado (anti-FOUT en `<head>`), y compatibilidad total con el motor de datos y reglas de negocio de BusRío.
 
+---
+
+## [ADR-008] Centro de Control Unificado (Monitor + Mapa), Estabilidad de Layout (CLS = 0) y Toasts Móviles
+* **Fecha y Hora**: 2026-09-15 15:00 UTC-3
+* **Estado**: Aceptado
+* **Contexto**: Tras pruebas de uso real, se identificaron 3 fricciones de UX críticas en la versión preliminar:
+  1. Distancia excesiva entre la selección de líneas/paradas y el mapa Leaflet, requiriendo scroll vertical continuo.
+  2. Salto abrupto de dimensiones y colapso visual al filtrar ramales o cambiar de estado (CLS severo).
+  3. Desbordamiento y visualización deficiente de notificaciones flotantes (toasts) en pantallas móviles estrechas (< 420px).
+* **Decisión**:
+  1. **Centro de Control Unificado**: Integrar el Monitor de Líneas y el Mapa Leaflet lado a lado en un split-view (`lg:grid-cols-12`: 5 cols panel de tarjetas, 7 cols mapa interactivo). En móviles, proveer selector segmentado (`[ Líneas ]` / `[ Mapa ]`) con cambio automático y reajuste de tamaño (`invalidateSize`).
+  2. **Contenedor con Altura Estable**: Establecer altura fija (`h-[600px]`) con scroll interno suave en el panel de tarjetas. Los 3 estados (Loading skeleton idéntico, Empty state centrado y Success list) comparten exactamente el mismo contenedor sin alterar el alto de la página ni un píxel.
+  3. **Notificaciones Responsivas**: Contenedor adaptativo `bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6` con tarjetas `w-full sm:w-auto max-w-sm`, botón de cierre explícito y textos concisos.
+* **Consecuencias**: Interfaz sumamente ágil, ergonómica para celulares y computadoras, sin saltos visuales molestos y con retroalimentación inmediata sobre la cartografía.
+
+

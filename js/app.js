@@ -1,8 +1,11 @@
 /**
  * BusRío v2 - Application Logic
- * Lógica modular interactiva con arquitectura de Variables CSS, estética de alta gama:
- * Filtros de garitas, renderizado reactivo con 4 estados UI comprobados,
- * mapa Leaflet con estilizado personalizado, formulario de alertas ciudadanas y switch de tema.
+ * Centro de Control de Colectivos en Tiempo Real (Río Cuarto)
+ * - Monitor y Mapa interactivo Leaflet unificados en una sola vista de comando.
+ * - Cero saltos de layout (CLS = 0) al filtrar garitas o buscar líneas.
+ * - Selector de vista móvil (Lista <-> Mapa) sin scroll infinito.
+ * - Toasts 100% responsivos adaptados a pantallas estrechas de celular.
+ * - Sistema bimodal con Variables CSS persistente en LocalStorage.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,14 +16,16 @@ document.addEventListener('DOMContentLoaded', () => {
     map: null,
     routeLayers: {},
     stopMarkers: {},
-    activeModalLine: null
+    activeLineId: null
   };
 
-  // Inicialización de componentes
+  // Inicialización de subsistemas
   initTheme();
   initMobileMenu();
+  initMobileViewSwitcher();
   initStopFilterTabs();
   initSearch();
+  initHeroQuickNodes();
   initCardGrid();
   initAlertsFeed();
   initAlertForm();
@@ -29,12 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initLiveCountdown();
 
   /* ==========================================================================
-     1. GESTIÓN DE TEMA (MODO OSCURO / MODO CLARO)
+     1. GESTIÓN DE TEMA (MODO OSCURO PREDETERMINADO / MODO CLARO)
      ========================================================================== */
   function initTheme() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
-    const themeText = document.getElementById('theme-text');
 
     function applyTheme(isDark) {
       if (isDark) {
@@ -42,18 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.classList.remove('light');
         localStorage.setItem('busrio_theme', 'dark');
         if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-300 text-sm';
-        if (themeText) themeText.textContent = 'Claro';
       } else {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
         localStorage.setItem('busrio_theme', 'light');
         if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-blue-600 text-sm';
-        if (themeText) themeText.textContent = 'Oscuro';
       }
     }
 
     const savedTheme = localStorage.getItem('busrio_theme');
-    // Por defecto inicia en Modo Oscuro (Predeterminado de alta gama)
+    // Por defecto inicia en Modo Oscuro de alta gama
     const isDark = savedTheme ? savedTheme === 'dark' : true;
     applyTheme(isDark);
 
@@ -62,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentlyDark = document.documentElement.classList.contains('dark');
         applyTheme(!currentlyDark);
         showToast(
-          !currentlyDark ? 'Modo Oscuro Activado 🌙' : 'Modo Claro Activado ☀️',
+          !currentlyDark ? 'Modo Oscuro activado 🌙' : 'Modo Claro activado ☀️',
           'info'
         );
       });
@@ -99,7 +101,58 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3. TABS Y FILTROS POR GARITA (CÁPSULAS HIGH-END)
+     3. ALTERNADOR DE VISTA MÓVIL (LISTA <-> MAPA)
+     ========================================================================== */
+  function initMobileViewSwitcher() {
+    const btnList = document.getElementById('mobile-view-list');
+    const btnMap = document.getElementById('mobile-view-map');
+    const listCol = document.getElementById('monitor-list-col');
+    const mapCol = document.getElementById('monitor-map-col');
+
+    if (!btnList || !btnMap || !listCol || !mapCol) return;
+
+    btnList.addEventListener('click', () => {
+      switchMobileView('list');
+    });
+
+    btnMap.addEventListener('click', () => {
+      switchMobileView('map');
+    });
+  }
+
+  function switchMobileView(view) {
+    const btnList = document.getElementById('mobile-view-list');
+    const btnMap = document.getElementById('mobile-view-map');
+    const listCol = document.getElementById('monitor-list-col');
+    const mapCol = document.getElementById('monitor-map-col');
+
+    if (!btnList || !btnMap || !listCol || !mapCol) return;
+
+    if (view === 'list') {
+      listCol.classList.remove('hidden');
+      listCol.classList.add('block');
+      mapCol.classList.add('hidden');
+      mapCol.classList.remove('block');
+
+      btnList.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+      btnMap.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+    } else {
+      listCol.classList.add('hidden');
+      listCol.classList.remove('block');
+      mapCol.classList.remove('hidden');
+      mapCol.classList.add('block');
+
+      btnMap.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+      btnList.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+
+      if (state.map) {
+        setTimeout(() => state.map.invalidateSize(), 50);
+      }
+    }
+  }
+
+  /* ==========================================================================
+     4. TABS Y FILTROS POR GARITA (PÍLDORAS DESLIZABLES)
      ========================================================================== */
   function initStopFilterTabs() {
     const tabsContainer = document.getElementById('stop-tabs-container');
@@ -108,14 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
     tabsContainer.innerHTML = '';
 
     // Botón "Todas las Paradas"
-    const allBtn = createTabButton('all', 'Todas las Paradas', 'fa-solid fa-layer-group', true);
+    const allBtn = createTabButton('all', 'Todas las Garitas', 'fa-solid fa-layer-group', true);
     tabsContainer.appendChild(allBtn);
 
     // Botones por cada parada crítica de Río Cuarto
     BUSRIO_DATA.stops.forEach(stop => {
       const icon = stop.id === 'hospital-padua' ? 'fa-solid fa-hospital' :
                    stop.id === 'unrc-campus' ? 'fa-solid fa-graduation-cap' :
-                   stop.id === 'plaza-roca' ? 'fa-solid fa-tree' : 'fa-solid fa-location-dot';
+                   stop.id === 'plaza-roca' ? 'fa-solid fa-tree' :
+                   stop.id === 'centro-trasbordo' ? 'fa-solid fa-arrows-split-up-and-left' :
+                   stop.id === 'banda-norte' ? 'fa-solid fa-compass' : 'fa-solid fa-location-dot';
       const btn = createTabButton(stop.id, stop.name, icon, false);
       tabsContainer.appendChild(btn);
     });
@@ -128,39 +183,46 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.className = `stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] ${
       isActive
         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-semibold'
-        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] border border-transparent hover:border-[var(--border-color)]'
+        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-blue-500/30'
     }`;
     btn.innerHTML = `<i class="${iconClass} text-[11px]"></i><span>${label}</span>`;
 
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.stop-tab-btn').forEach(b => {
-        b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] border border-transparent hover:border-[var(--border-color)]';
-      });
-      btn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] bg-blue-600 text-white shadow-md shadow-blue-500/25';
-
-      state.selectedStop = id;
-      triggerCardRenderWithLoading();
-
-      // Centrado suave en el mapa al seleccionar parada
-      if (id !== 'all' && state.map) {
-        const targetStop = BUSRIO_DATA.stops.find(s => s.id === id);
-        if (targetStop) {
-          state.map.flyTo(targetStop.coords, 15, { duration: 1.2 });
-          if (state.stopMarkers[id]) {
-            state.stopMarkers[id].openPopup();
-          }
-        }
-      } else if (id === 'all' && state.map) {
-        state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 1.2 });
-      }
+      selectStopTab(id);
     });
 
     return btn;
   }
 
+  function selectStopTab(id) {
+    document.querySelectorAll('.stop-tab-btn').forEach(b => {
+      b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-blue-500/30';
+    });
+    const targetBtn = document.querySelector(`.stop-tab-btn[data-stop-id="${id}"]`);
+    if (targetBtn) {
+      targetBtn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 whitespace-nowrap min-h-[36px] bg-blue-600 text-white shadow-md shadow-blue-500/25';
+    }
+
+    state.selectedStop = id;
+    triggerCardRenderWithLoading();
+
+    // Centrado suave en el mapa al seleccionar parada
+    if (id !== 'all' && state.map) {
+      const targetStop = BUSRIO_DATA.stops.find(s => s.id === id);
+      if (targetStop) {
+        state.map.flyTo(targetStop.coords, 15, { duration: 1 });
+        if (state.stopMarkers[id]) {
+          state.stopMarkers[id].openPopup();
+        }
+      }
+    } else if (id === 'all' && state.map) {
+      state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 1 });
+    }
+  }
+
   /* ==========================================================================
-     4. BÚSQUEDA RÁPIDA (HERO Y MONITOR)
-     ========================================================================== */
+     5. BÚSQUEDA RÁPIDA (HERO Y MONITOR)
+     ========================================================================= */
   function initSearch() {
     const heroSearchInput = document.getElementById('hero-search-input');
     const heroSearchBtn = document.getElementById('hero-search-btn');
@@ -194,9 +256,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function initHeroQuickNodes() {
+    document.querySelectorAll('.quick-node-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const stopId = btn.getAttribute('data-stop');
+        if (stopId) {
+          selectStopTab(stopId);
+          document.getElementById('monitor')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  }
+
   /* ==========================================================================
-     5. RENDERIZADO DE TARJETAS (4 ESTADOS UI COMPROBADOS)
-     ========================================================================== */
+     6. RENDERIZADO DE TARJETAS (ESTABILIDAD TOTAL DE TAMAÑO - CLS = 0)
+     ========================================================================= */
   function triggerCardRenderWithLoading() {
     const gridContainer = document.getElementById('lines-grid');
     const skeletonContainer = document.getElementById('lines-skeleton');
@@ -204,16 +278,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!gridContainer || !skeletonContainer || !emptyContainer) return;
 
-    // Estado 1: ⏳ LOADING
+    // Estado 1: ⏳ LOADING (Mantiene dimensiones del contenedor padre sin saltos)
     gridContainer.classList.add('hidden');
     emptyContainer.classList.add('hidden');
     skeletonContainer.classList.remove('hidden');
 
-    // Transición visual ágil de 160ms
+    // Transición visual ágil y predecible de 120ms
     setTimeout(() => {
       skeletonContainer.classList.add('hidden');
       renderCards();
-    }, 160);
+    }, 120);
   }
 
   function initCardGrid() {
@@ -223,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCards() {
     const gridContainer = document.getElementById('lines-grid');
     const emptyContainer = document.getElementById('lines-empty');
+    const counterBadge = document.getElementById('lines-counter-badge');
+    const mobileCounter = document.getElementById('mobile-line-count');
     if (!gridContainer || !emptyContainer) return;
 
     const filteredLines = BUSRIO_DATA.lines.filter(line => {
@@ -238,7 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return matchesStop && matchesQuery;
     });
 
-    // Estado 2: 📭 EMPTY
+    const totalCount = filteredLines.length;
+    if (counterBadge) counterBadge.textContent = `${totalCount} ${totalCount === 1 ? 'Línea' : 'Líneas'}`;
+    if (mobileCounter) mobileCounter.textContent = totalCount;
+
+    // Estado 2: 📭 EMPTY (Centrado dentro del scroll sin achicar el contenedor)
     if (filteredLines.length === 0) {
       gridContainer.classList.add('hidden');
       emptyContainer.classList.remove('hidden');
@@ -250,8 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
           state.searchQuery = '';
           const searchInput = document.getElementById('monitor-search-input');
           if (searchInput) searchInput.value = '';
-          initStopFilterTabs();
-          triggerCardRenderWithLoading();
+          selectStopTab('all');
         };
       }
       return;
@@ -270,117 +349,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createLineCard(line) {
     const article = document.createElement('article');
-    article.className = 'group relative glass-card rounded-2xl p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between hover:border-blue-500/40';
+    const isActive = state.activeLineId === line.id;
 
-    // Estados visuales tipo badge de alta gama
+    article.className = `line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border ${
+      isActive
+        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-500/5'
+        : 'border-[var(--card-border)] hover:border-blue-500/40'
+    }`;
+    article.setAttribute('data-line-id', line.id);
+
+    // Estados visuales badges
     let statusBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     let statusDotColor = 'bg-emerald-500';
+    let statusText = 'Normal';
     let pulseClass = line.etaMinutes <= 5 ? 'animate-pulse' : '';
 
     if (line.status === 'warning') {
       statusBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       statusDotColor = 'bg-amber-500';
+      statusText = 'Demora';
     } else if (line.status === 'danger') {
       statusBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       statusDotColor = 'bg-rose-500';
+      statusText = 'Desvío';
     }
 
     article.innerHTML = `
-      <div>
-        <!-- Fila Superior: Badge de Línea + ETA Pill -->
-        <div class="flex items-start justify-between gap-3 mb-4">
-          <div class="flex items-center gap-3">
-            <span class="inline-flex items-center justify-center px-3 py-1 rounded-lg font-heading font-bold text-xs text-white shadow-sm ${line.bgClass}">
-              ${line.number}
-            </span>
-            <div>
-              <h3 class="font-heading font-bold text-[var(--text-primary)] text-sm sm:text-base leading-tight group-hover:text-blue-500 transition-colors">
-                ${line.name}
-              </h3>
-              <span class="text-[11px] text-[var(--text-muted)] font-medium">Frecuencia: ${line.frequency}</span>
-            </div>
-          </div>
-
-          <!-- Chip de Arribo (ETA) -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${pulseClass} bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
-            <span class="w-2 h-2 rounded-full ${statusDotColor}"></span>
-            <span>${line.etaMinutes} min</span>
+      <!-- Fila 1: Badge Línea + Nombre + ETA -->
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-lg font-heading font-bold text-xs text-white shadow-sm shrink-0 ${line.bgClass}">
+            ${line.number}
+          </span>
+          <div class="min-w-0">
+            <h4 class="font-heading font-bold text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-blue-500 transition-colors leading-tight truncate">
+              ${line.name}
+            </h4>
+            <span class="text-[10px] text-[var(--text-muted)] font-medium">Cada ${line.frequency.replace('Cada ', '')}</span>
           </div>
         </div>
 
-        <!-- Trayecto y Garita -->
-        <div class="space-y-2 py-3 border-y border-[var(--border-color)] my-3 text-xs">
-          <div class="flex items-start gap-2.5">
-            <div class="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 mt-0.5">
-              <i class="fa-solid fa-location-dot text-[10px]"></i>
-            </div>
-            <div>
-              <span class="text-[10px] text-[var(--text-muted)] block font-medium">Parada:</span>
-              <strong class="text-[var(--text-primary)] font-semibold">${line.stopName}</strong>
-            </div>
-          </div>
-          <div class="flex items-start gap-2.5">
-            <div class="w-5 h-5 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
-              <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </div>
-            <div>
-              <span class="text-[10px] text-[var(--text-muted)] block font-medium">Destino:</span>
-              <span class="text-[var(--text-secondary)] font-medium">${line.direction}</span>
-            </div>
-          </div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${pulseClass} bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full ${statusDotColor}"></span>
+          <span>${line.etaMinutes} min</span>
         </div>
+      </div>
 
-        <!-- Chips de Estado y Accesibilidad -->
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${statusBadgeColor}">
-            <span class="w-1.5 h-1.5 rounded-full ${statusDotColor}"></span>
-            <span>${line.statusLabel}</span>
+      <!-- Fila 2: Garita próxima y destino -->
+      <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mb-2.5 bg-[var(--bg-primary)]/80 px-2.5 py-1.5 rounded-lg border border-[var(--border-color)]">
+        <i class="fa-solid fa-location-dot text-blue-500 text-[10px] shrink-0"></i>
+        <span class="truncate">Garita: <strong class="text-[var(--text-primary)]">${line.stopName}</strong></span>
+      </div>
+
+      <!-- Fila 3: Chips de Estado y Acciones -->
+      <div class="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)]">
+        <div class="flex items-center gap-1.5">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusBadgeColor}">
+            <span class="w-1 h-1 rounded-full ${statusDotColor}"></span>
+            <span>${statusText}</span>
           </span>
 
           ${line.accessible ? `
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-color)]" title="Unidad con rampa automática">
-              <i class="fa-solid fa-wheelchair text-[11px] text-blue-500"></i>
-              <span>Rampa accesible</span>
+            <span class="p-1 text-blue-500 text-xs" title="Unidad con rampa accesible">
+              <i class="fa-solid fa-wheelchair"></i>
             </span>
-          ` : `
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] text-[var(--text-muted)] border border-[var(--border-color)]" title="Piso convencional">
-              <span>Piso Convencional</span>
-            </span>
-          `}
+          ` : ''}
         </div>
-      </div>
 
-      <!-- Botones de Acción Estilo High-End -->
-      <div class="flex items-center gap-2 pt-2">
-        <button type="button" class="view-route-btn flex-1 min-h-[38px] px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2" data-line-id="${line.id}">
-          <i class="fa-solid fa-route text-xs"></i>
-          <span>Ver Recorrido</span>
-        </button>
-
-        <button type="button" class="locate-map-btn min-h-[38px] px-3 py-2 bg-[var(--bg-primary)] hover:bg-[var(--border-color)] text-[var(--text-primary)] rounded-xl text-xs font-semibold transition-all flex items-center justify-center border border-[var(--border-color)]" title="Localizar en Mapa" data-line-id="${line.id}">
-          <i class="fa-solid fa-map-location-dot"></i>
-          <span class="sr-only">Localizar en mapa</span>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button type="button" class="locate-line-btn px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm" data-line-id="${line.id}" title="Trazar recorrido en el mapa">
+            <i class="fa-solid fa-map text-[10px]"></i>
+            <span>Trazar</span>
+          </button>
+          <button type="button" class="view-route-btn px-2.5 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--border-color)] text-[var(--text-primary)] text-[11px] font-semibold border border-[var(--border-color)] transition-all flex items-center gap-1" data-line-id="${line.id}" title="Ver itinerario completo de paradas">
+            <i class="fa-solid fa-list-ol text-[10px]"></i>
+            <span>Paradas</span>
+          </button>
+        </div>
       </div>
     `;
 
-    const viewRouteBtn = article.querySelector('.view-route-btn');
-    if (viewRouteBtn) {
-      viewRouteBtn.addEventListener('click', () => openLineModal(line));
-    }
-
-    const locateMapBtn = article.querySelector('.locate-map-btn');
-    if (locateMapBtn) {
-      locateMapBtn.addEventListener('click', () => {
-        focusLineOnMap(line);
-      });
-    }
+    // Clic en toda la tarjeta selecciona y enfoca la línea en el mapa
+    article.addEventListener('click', (e) => {
+      // Si hizo clic en "Paradas", abrimos el modal
+      if (e.target.closest('.view-route-btn')) {
+        openLineModal(line);
+        return;
+      }
+      // En cualquier otro caso, trazamos en el mapa
+      focusLineOnMap(line, true);
+    });
 
     return article;
   }
 
   /* ==========================================================================
-     6. INTEGRACIÓN DE MAPA INTERACTIVO (LEAFLET.JS)
+     7. MAPA INTERACTIVO LEAFLET Y SINCRONIZACIÓN
      ========================================================================== */
   function initLeafletMap() {
     const mapContainer = document.getElementById('leaflet-map');
@@ -398,31 +462,32 @@ document.addEventListener('DOMContentLoaded', () => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> | BusRío'
     }).addTo(state.map);
 
+    // Renderizado de paradas clave
     BUSRIO_DATA.stops.forEach(stop => {
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-          <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white ring-2 ring-blue-500/40 cursor-pointer transition-transform hover:scale-110">
-            <i class="fa-solid fa-bus text-xs"></i>
+          <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white ring-2 ring-blue-500/40 cursor-pointer transition-transform hover:scale-110">
+            <i class="fa-solid fa-bus text-[11px]"></i>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
       });
 
       const marker = L.marker(stop.coords, { icon: customIcon }).addTo(state.map);
 
       const popupContent = `
-        <div class="p-2 font-sans">
+        <div class="p-1 font-sans text-xs">
           <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full mb-1">${stop.type}</span>
-          <h4 class="font-heading font-bold text-[var(--text-primary)] text-sm mt-1">${stop.name}</h4>
-          <p class="text-xs text-[var(--text-secondary)] mt-1">${stop.address}</p>
-          <div class="mt-2.5 pt-2 border-t border-[var(--border-color)]">
-            <span class="text-[11px] font-semibold text-[var(--text-primary)]">Líneas en esta parada:</span>
-            <div class="flex flex-wrap gap-1 mt-1.5">
+          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs mt-1">${stop.name}</h4>
+          <p class="text-[11px] text-[var(--text-secondary)] mt-0.5">${stop.address}</p>
+          <div class="mt-2 pt-2 border-t border-[var(--border-color)]">
+            <span class="text-[10px] font-semibold text-[var(--text-primary)] block mb-1">Líneas en esta garita:</span>
+            <div class="flex flex-wrap gap-1">
               ${stop.lines.map(lineId => {
                 const l = BUSRIO_DATA.lines.find(item => item.id === lineId);
-                return l ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
+                return l ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold text-white ${l.bgClass}">${l.number}</span>` : '';
               }).join('')}
             </div>
           </div>
@@ -430,26 +495,48 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       marker.bindPopup(popupContent);
       state.stopMarkers[stop.id] = marker;
+
+      // Al hacer clic en el marcador, sincroniza con las líneas que pasan por allí
+      marker.on('click', () => {
+        selectStopTab(stop.id);
+      });
     });
 
+    // Renderizado de polilíneas de las líneas
     BUSRIO_DATA.lines.forEach(line => {
       if (line.routeCoords && line.routeCoords.length > 0) {
         const polyline = L.polyline(line.routeCoords, {
           color: line.color,
           weight: 4,
-          opacity: 0.85,
-          dashArray: line.status === 'danger' ? '8, 8' : null
+          opacity: 0.75,
+          dashArray: line.status === 'danger' ? '6, 6' : null
         }).addTo(state.map);
 
         polyline.bindTooltip(`<strong>${line.number}</strong>: ${line.name}`, { sticky: true });
+        
+        polyline.on('click', () => {
+          focusLineOnMap(line, false);
+        });
+
         state.routeLayers[line.id] = polyline;
       }
     });
 
+    // Botón de Recentrado
     const resetViewBtn = document.getElementById('map-reset-btn');
     if (resetViewBtn) {
       resetViewBtn.addEventListener('click', () => {
+        clearLineFocus();
         state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 1 });
+        showToast('Mapa recentrado en Río Cuarto', 'info');
+      });
+    }
+
+    // Botón de Limpiar Enfoque de Ruta
+    const clearRouteBtn = document.getElementById('clear-route-focus-btn');
+    if (clearRouteBtn) {
+      clearRouteBtn.addEventListener('click', () => {
+        clearLineFocus();
       });
     }
 
@@ -458,20 +545,83 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function focusLineOnMap(line) {
-    const mapSection = document.getElementById('mapa');
-    if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
+  function focusLineOnMap(line, autoSwitchMobile = true) {
+    if (!state.map) return;
 
-    if (state.map && state.routeLayers[line.id]) {
-      setTimeout(() => {
-        state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [40, 40] });
-        showToast(`Mostrando recorrido de ${line.number} en el mapa`, 'info');
-      }, 400);
+    state.activeLineId = line.id;
+
+    // Resaltar visualmente la tarjeta activa en la lista
+    document.querySelectorAll('.line-card').forEach(card => {
+      const cardId = card.getAttribute('data-line-id');
+      if (cardId === line.id) {
+        card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-blue-500 ring-1 ring-blue-500 bg-blue-500/5';
+      } else {
+        card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-[var(--card-border)] hover:border-blue-500/40';
+      }
+    });
+
+    // Resaltar la polilínea activa y atenuar las demás
+    Object.keys(state.routeLayers).forEach(id => {
+      const layer = state.routeLayers[id];
+      if (id === line.id) {
+        layer.setStyle({ weight: 6, opacity: 1.0 });
+        layer.bringToFront();
+      } else {
+        layer.setStyle({ weight: 3, opacity: 0.25 });
+      }
+    });
+
+    // Ajustar zoom y encuadre a la línea
+    if (state.routeLayers[line.id]) {
+      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [35, 35] });
     }
+
+    // Actualizar banner flotante en el mapa
+    const banner = document.getElementById('active-route-banner');
+    const badge = document.getElementById('active-route-badge');
+    const text = document.getElementById('active-route-text');
+
+    if (banner && badge && text) {
+      badge.textContent = line.number;
+      badge.className = `px-2 py-0.5 rounded text-[10px] font-bold text-white shrink-0 ${line.bgClass}`;
+      text.textContent = line.name;
+      banner.classList.remove('hidden');
+    }
+
+    // En celular, si es necesario, cambiar automáticamente a la pestaña de mapa
+    if (autoSwitchMobile && window.innerWidth < 1024) {
+      switchMobileView('map');
+    }
+
+    showToast(`Mostrando recorrido de ${line.number}`, 'info');
+  }
+
+  function clearLineFocus() {
+    state.activeLineId = null;
+
+    // Restaurar estilos de tarjetas
+    document.querySelectorAll('.line-card').forEach(card => {
+      card.className = 'line-card group relative p-3.5 sm:p-4 rounded-xl glass-card transition-all duration-200 cursor-pointer border border-[var(--card-border)] hover:border-blue-500/40';
+    });
+
+    // Restaurar estilos de todas las polilíneas
+    BUSRIO_DATA.lines.forEach(line => {
+      if (state.routeLayers[line.id]) {
+        state.routeLayers[line.id].setStyle({
+          weight: 4,
+          opacity: 0.75,
+          color: line.color
+        });
+      }
+    });
+
+    // Ocultar banner flotante
+    const banner = document.getElementById('active-route-banner');
+    if (banner) banner.classList.add('hidden');
   }
 
   /* ==========================================================================
-     7. MODAL DE DETALLES DE RECORRIDO (GLASS DRAWER)
+     8. MODAL DE DETALLES DE RECORRIDO (ITINERARIO DE PARADAS)
      ========================================================================== */
   function initModal() {
     const modal = document.getElementById('route-modal');
@@ -517,9 +667,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const isFirst = idx === 0;
         const isLast = idx === line.stopsList.length - 1;
         const stopItem = document.createElement('li');
-        stopItem.className = 'relative flex items-center gap-4 pb-4 last:pb-0';
+        stopItem.className = 'relative flex items-center gap-3.5 pb-3.5 last:pb-0';
         stopItem.innerHTML = `
-          <div class="relative z-10 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+          <div class="relative z-10 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 ${
             isFirst ? 'bg-blue-600 text-white shadow-sm' : isLast ? 'bg-rose-500 text-white shadow-sm' : 'bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)]'
           }">
             ${idx + 1}
@@ -537,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modalMapBtn.onclick = () => {
         modal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
-        focusLineOnMap(line);
+        focusLineOnMap(line, true);
       };
     }
 
@@ -546,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     8. ALERTA CIUDADANA Y FORMULARIO
+     9. ALERTAS CIUDADANAS Y FORMULARIO
      ========================================================================== */
   function initAlertsFeed() {
     const feedContainer = document.getElementById('alerts-feed-container');
@@ -564,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (incidentSelect && incidentText) {
           incidentSelect.value = incidentText;
           document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' });
-          showToast(`Incidencia "${incidentText}" seleccionada. Completa la parada y confirma el envío.`, 'info');
+          showToast(`Incidencia seleccionada: ${incidentText}`, 'info');
         }
       });
     });
@@ -580,20 +730,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     item.className = 'p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] transition-all hover:border-blue-500/40 text-xs';
     item.innerHTML = `
-      <div class="flex items-start justify-between gap-3 mb-2">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+      <div class="flex items-start justify-between gap-2 mb-1.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor} shrink-0">
             <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
             <span>${alert.line}</span>
           </span>
-          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs">${alert.title}</h4>
+          <h4 class="font-heading font-bold text-[var(--text-primary)] text-xs truncate">${alert.title}</h4>
         </div>
-        <span class="text-[10px] text-[var(--text-muted)] font-medium whitespace-nowrap">${alert.time}</span>
+        <span class="text-[10px] text-[var(--text-muted)] font-medium whitespace-nowrap shrink-0">${alert.time}</span>
       </div>
       <p class="text-[11px] text-[var(--text-secondary)] mb-2 leading-relaxed">${alert.description}</p>
-      <div class="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-2 border-t border-[var(--border-color)]">
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-blue-500"></i>${alert.stop}</span>
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-500"></i>${alert.author}</span>
+      <div class="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-color)]">
+        <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-blue-500"></i>${alert.stop}</span>
+        <span class="flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-500"></i>${alert.author}</span>
       </div>
     `;
     return item;
@@ -627,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!typeSelect.value) {
-        showFieldError(typeSelect, 'Indica el tipo de incidencia.');
+        showFieldError(typeSelect, 'Indica el motivo del reporte.');
         hasError = true;
       }
 
@@ -647,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stop: selectedStopObj ? selectedStopObj.name : stopSelect.value,
         author: nameInput.value.trim() ? `${nameInput.value.trim()} (Pasajero)` : 'Pasajero Verificado',
         time: 'Recién ahora',
-        description: commentInput.value.trim() || `Reporte de ${typeSelect.value} en garita de Río Cuarto emitido desde la PWA.`
+        description: commentInput.value.trim() || `Reporte emitido desde la parada ${selectedStopObj ? selectedStopObj.name : ''}.`
       };
 
       // Estado 4: ✅ SUCCESS - Agregar al store y al feed
@@ -658,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       form.reset();
-      showToast('¡Alerta comunitaria publicada con éxito! Gracias por colaborar con los usuarios de Río Cuarto.', 'success');
+      showToast('¡Alerta comunitaria publicada con éxito!', 'success');
     });
   }
 
@@ -681,45 +831,60 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9. TOAST DE NOTIFICACIÓN FLOTANTE (ESTILO HIGH-END PILL)
+     10. TOAST NOTIFICACIONES (RESPONSIVE CELULAR & ESCRITORIO)
      ========================================================================== */
   function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
       container.id = 'toast-container';
-      container.className = 'fixed bottom-6 right-6 z-[2000] flex flex-col gap-2.5 pointer-events-none';
+      container.className = 'fixed bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6 z-[2000] flex flex-col gap-2 pointer-events-none items-center sm:items-end';
       document.body.appendChild(container);
     }
 
     const toast = document.createElement('div');
     const bgClass = type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-950/30' :
                     type === 'error' ? 'bg-rose-600 text-white shadow-rose-950/30' :
-                    'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-950/30';
+                    'bg-blue-600 text-white shadow-blue-950/30';
     const icon = type === 'success' ? 'fa-solid fa-circle-check' :
-                 type === 'error' ? 'fa-solid fa-circle-xmark' :
+                 type === 'error' ? 'fa-solid fa-circle-exclamation' :
                  'fa-solid fa-circle-info';
 
-    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl font-sans text-xs font-bold tracking-wide transition-all duration-300 translate-y-4 opacity-0 border border-white/10 backdrop-blur-md ${bgClass}`;
+    toast.className = `pointer-events-auto w-full sm:w-auto max-w-sm flex items-center justify-between gap-3 px-4 py-3 rounded-2xl shadow-2xl font-sans text-xs font-semibold tracking-wide transition-all duration-300 translate-y-3 opacity-0 border border-white/10 backdrop-blur-md ${bgClass}`;
     toast.innerHTML = `
-      <i class="${icon} text-sm"></i>
-      <span>${message}</span>
+      <div class="flex items-center gap-2.5 min-w-0">
+        <i class="${icon} text-sm shrink-0"></i>
+        <span class="leading-snug break-words truncate">${message}</span>
+      </div>
+      <button type="button" class="toast-close-btn opacity-75 hover:opacity-100 text-xs shrink-0 p-1" aria-label="Cerrar notificación">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     `;
 
     container.appendChild(toast);
 
+    const closeBtn = toast.querySelector('.toast-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => toast.remove(), 250);
+      };
+    }
+
     requestAnimationFrame(() => {
-      toast.classList.remove('translate-y-4', 'opacity-0');
+      toast.classList.remove('translate-y-3', 'opacity-0');
     });
 
     setTimeout(() => {
-      toast.classList.add('translate-y-4', 'opacity-0');
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
+      if (toast.parentElement) {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => toast.remove(), 250);
+      }
+    }, 3200);
   }
 
   /* ==========================================================================
-     10. SIMULACIÓN DE CUENTA REGRESIVA DE LLEGADA (ETA TICKER)
+     11. SIMULACIÓN DE CUENTA REGRESIVA DE LLEGADA (ETA TICKER)
      ========================================================================== */
   function initLiveCountdown() {
     setInterval(() => {

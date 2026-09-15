@@ -81,3 +81,17 @@
   - Documentado en ADR-007 en `docs/contexto/decisiones.md`.
 - **Estado**: Finalizado con éxito y verificado.
 
+---
+
+### [2026-09-15] - Centro de Control Unificado, Cero Saltos de Layout y Toasts Móviles (v2)
+- **ID**: `mem_busrio_v2_command_center_fix`
+- **Tipo**: Optimización Crítica de Ergonomía UI/UX
+- **Alcance**: Rama `v2`, `index.html`, `js/app.js`, `docs/contexto/decisiones.md`
+- **Contenido**:
+  - Resuelta la lejanía entre monitor y mapa unificándolos en un Centro de Control interactivo split-view (`lg:grid-cols-12`: 5 cols panel de líneas, 7 cols mapa interactivo).
+  - Eliminados los saltos de tamaño al filtrar líneas fijando la altura del contenedor (`h-[600px]`) con scrollbar delgada y esqueletos de idéntica proporción (CLS = 0).
+  - Selector segmentado en celulares (`[ Líneas ]` / `[ Mapa ]`) con cambio automático al pulsar "Trazar" y recálculo de azulejos Leaflet (`invalidateSize`).
+  - Toasts 100% responsivos adaptados al viewport móvil (`bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6 max-w-sm`) con botón de cierre manual y auto-descarte limpio.
+- **Estado**: Finalizado con éxito y verificado.
+
+
