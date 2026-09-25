@@ -212,6 +212,141 @@
             transparent 1px
           );
       }
+
+      /* Regla de Oro CSS de Leaflet: Altura y ancho explícitos garantizados */
+      #map,
+      #leaflet-map {
+        width: 100%;
+        height: 100%;
+        min-height: 480px;
+        border-radius: 10px;
+      }
+
+      /* Blindaje específico para modales y elementos con atributo hidden nativo */
+      #route-modal.hidden,
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ==========================================================================
+         CONTROL DE DESPLAZAMIENTO Y OFFSET DE NAVEGACIÓN (ANTI-CLIPPING POR NAVBAR)
+         ========================================================================== */
+      html {
+        scroll-padding-top: 5.5rem; /* 88px: 64px del navbar sticky + 24px margen estético */
+      }
+
+      section[id],
+      div[id="report-form-card"],
+      div[id="map"],
+      div[id="leaflet-map"],
+      form[id="report-form"] {
+        scroll-margin-top: 5.5rem;
+      }
+
+      /* ==========================================================================
+         SISTEMA DE CONTROL DE CURSORES Y SELECCIÓN (ANTI-I-BEAM UI TOTAL)
+         ========================================================================== */
+      /* 1. Base Universal: Flecha normal (cursor: default) y sin selección accidental */
+      *,
+      *::before,
+      *::after {
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* 2. Textos, títulos, subtítulos, párrafos, badges y contenedores */
+      html,
+      body,
+      h1, h2, h3, h4, h5, h6,
+      h1 *, h2 *, h3 *, h4 *, h5 *, h6 *,
+      p, p *,
+      span,
+      strong, b, em, small,
+      div, section, article, main, aside,
+      header, footer, nav,
+      ul, ol, li,
+      table, tr, th, td,
+      label,
+      svg, i,
+      .transit-card, .transit-nav, .badge, .pill {
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* 3. Elementos interactivos y de acción: Manito (cursor: pointer) profunda en elemento e hijos */
+      button,
+      button *,
+      a,
+      a *,
+      [role="button"],
+      [role="button"] *,
+      .cursor-pointer,
+      .cursor-pointer *,
+      .btn-transit,
+      .btn-transit *,
+      .tab-btn,
+      .tab-btn *,
+      .line-card,
+      .line-card *,
+      .view-route-btn,
+      .view-route-btn *,
+      .locate-line-btn,
+      .locate-line-btn *,
+      .toast-close-btn,
+      .toast-close-btn *,
+      .quick-report-btn,
+      .quick-report-btn *,
+      select,
+      summary,
+      summary * {
+        cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+      }
+
+      /* 4. Controles del mapa Leaflet interactivos */
+      .leaflet-container,
+      .leaflet-grab {
+        cursor: grab !important;
+      }
+      .leaflet-dragging,
+      .leaflet-dragging .leaflet-grab,
+      .leaflet-dragging .leaflet-container {
+        cursor: grabbing !important;
+      }
+      .leaflet-interactive,
+      .leaflet-marker-icon,
+      .leaflet-control-zoom-in,
+      .leaflet-control-zoom-out,
+      .custom-leaflet-marker,
+      .custom-leaflet-marker * {
+        cursor: pointer !important;
+      }
+
+      /* 5. Sanitización defensiva contra atributos contenteditable */
+      [contenteditable] {
+        outline: none !important;
+      }
+      [contenteditable]:not(input):not(textarea) {
+        user-select: none !important;
+        cursor: default !important;
+      }
+
+      /* 6. ÚNICOS elementos donde se permite escribir y seleccionar texto (Inputs y Textareas) */
+      input[type="text"],
+      input[type="search"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"],
+      input[type="tel"],
+      input[type="url"],
+      textarea {
+        cursor: text !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+      }
     </style>
   </head>
 
@@ -871,16 +1006,16 @@
               class="lg:col-span-7 w-full hidden lg:block"
             >
               <div class="transit-card p-1.5 relative flex flex-col h-[580px]">
-                <!-- Contenedor del Mapa -->
+                <!-- Contenedor del Mapa (Leaflet según guía oficial) -->
                 <div
-                  id="leaflet-map"
-                  class="w-full h-full rounded-[10px] z-10"
+                  id="map"
+                  class="w-full h-full min-h-[480px] rounded-[10px] z-10"
                 ></div>
 
                 <!-- Banner Flotante de Ruta Activa -->
                 <div
                   id="active-route-banner"
-                  class="absolute top-3.5 left-3.5 z-[400] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] flex items-center gap-2 text-xs font-mono text-[var(--text-primary)] hidden max-w-[85%] sm:max-w-md"
+                  class="absolute top-3.5 left-3.5 z-[800] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] flex items-center gap-2 text-xs font-mono text-[var(--text-primary)] hidden max-w-[85%] sm:max-w-md"
                 >
                   <span
                     id="active-route-badge"
@@ -903,7 +1038,7 @@
                 </div>
 
                 <!-- Controles Flotantes -->
-                <div class="absolute top-3.5 right-3.5 z-[400]">
+                <div class="absolute top-3.5 right-3.5 z-[800]">
                   <button
                     type="button"
                     id="map-reset-btn"
@@ -919,7 +1054,7 @@
 
                 <!-- Leyenda Técnica Inferior -->
                 <div
-                  class="absolute bottom-3.5 left-3.5 right-3.5 z-[400] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-secondary)] hidden sm:flex items-center justify-between gap-2 overflow-x-auto"
+                  class="absolute bottom-3.5 left-3.5 right-3.5 z-[800] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-secondary)] hidden sm:flex items-center justify-between gap-2 overflow-x-auto"
                 >
                   <span class="font-bold text-[var(--text-primary)] shrink-0"
                     >Ramales:</span
@@ -1174,7 +1309,7 @@
 
             <!-- Columna 2: Formulario de Emisión (6 cols) -->
             <div class="lg:col-span-6">
-              <div class="transit-card p-5">
+              <div id="report-form-card" class="transit-card p-5">
                 <h3
                   class="font-heading font-bold text-sm text-[var(--text-primary)] mb-1"
                 >
@@ -1674,6 +1809,7 @@
        ========================================================================= -->
     <div
       id="route-modal"
+      hidden
       class="hidden fixed inset-0 z-[1050] overflow-y-auto"
       role="dialog"
       aria-modal="true"

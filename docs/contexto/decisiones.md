@@ -114,5 +114,30 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
   5. **Testimonios y Footer**: Iniciales monocromas sin degradados; footer corporativo profundo (`#0A0D14`) en ambos modos.
 * **Consecuencias**: Look & feel de aplicación de tránsito seria, sólida y profesional, con altísima legibilidad y cero clichés visuales.
 
+---
+
+## [ADR-010] Resolución de Ergonomía de Cursor, Scroll Offset por Navbar y Sincronización Cartográfica
+* **Fecha y Hora**: 2026-09-24 21:30 UTC-3
+* **Estado**: Aceptado
+* **Contexto**:
+  1. **Cursor de edición involuntario**: Títulos, botones y contenedores mostraban el cursor I-beam (`|`) invitando a escribir y permitiendo selección accidental en elementos no editables.
+  2. **Scroll Offset excesivo ("quedar más abajo")**: La barra de navegación `sticky top-0` (64px) tapaba las cabeceras de las secciones al navegar con enlaces internos o llamar a `scrollIntoView()`.
+  3. **Cartografía de Ramales y Garitas**: Se detectó desincronización entre las paradas clave y los recorridos trazados (faltaba la cabecera Alberdi en Línea 1, el Centro de Trasbordo en Línea 2, y puntos intermedios en Líneas 14 y 5).
+* **Decisión**:
+  1. **Sistema de Cursores y Anti-I-Beam**:
+     - `cursor: default` y `user-select: none` para `h1-h6`, contenedores `.transit-card`, `.transit-nav`, badges y controles.
+     - `cursor: pointer` forzado en todos los botones, enlaces, selectores y elementos interactivos.
+     - `cursor: text` y `user-select: text` estrictamente reservado para campos editables (`input`, `textarea`).
+     - Neutralización en CSS y barrido defensivo en JS contra cualquier atributo `contenteditable` residual.
+  2. **Offset de Navegación Suave (Anti-Clipping)**:
+     - Configuración de `scroll-padding-top: 5.5rem` en `html` y `scroll-margin-top: 5.5rem` en todas las secciones y tarjetas ancla (`#report-form-card`).
+     - Función auxiliar `smoothScrollTo(target, offsetExtra)` que descuenta dinámicamente la altura del header sticky + 24px de respiro, interceptando navegación interna y llamadas programáticas.
+  3. **Sincronización Cartográfica Integral**:
+     - Línea 1: Vinculada bidireccionalmente con `barrio-alberdi` (cabecera oficial).
+     - Línea 2: Sincronizada con `centro-trasbordo` tanto en itinerario (`stopsList`) como en traza (`routeCoords`).
+     - Línea 14 y Línea 5: Traza georreferenciada de 5 puntos exacta coincidente con sus 5 paradas.
+* **Consecuencias**: Ergonomía visual óptima, navegación fluida sin cortes de títulos y mapa 100% verificado y fidedigno a la red de colectivos de Río Cuarto.
+
+
 
 

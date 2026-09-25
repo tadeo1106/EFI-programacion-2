@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Inicialización de componentes
+  sanitizeContentEditable();
+  initSmoothAnchorNavigation();
   initTheme();
   initMobileMenu();
   initMobileViewSwitcher();
@@ -31,6 +33,50 @@ document.addEventListener('DOMContentLoaded', () => {
   initModal();
   initLeafletMap();
   initLiveCountdown();
+
+  /* ==========================================================================
+     UTILIDADES DE NAVEGACIÓN Y ERGONOMÍA (OFFSET NAVBAR STICKY & SANITIZACIÓN)
+     ========================================================================== */
+  function smoothScrollTo(target, offsetExtra = 24) {
+    const element = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!element) return;
+
+    const navbar = document.getElementById('navbar');
+    const navHeight = navbar ? navbar.offsetHeight : 64;
+    const elementTop = element.getBoundingClientRect().top + window.pageYOffset;
+    const targetPosition = Math.max(0, elementTop - navHeight - offsetExtra);
+
+    window.scrollTo({
+      top: targetPosition,
+      behavior: 'smooth'
+    });
+  }
+
+  function sanitizeContentEditable() {
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+        el.removeAttribute('contenteditable');
+      }
+    });
+  }
+
+  function initSmoothAnchorNavigation() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        const href = anchor.getAttribute('href');
+        if (!href || href === '#') return;
+        const targetId = href.slice(1);
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          e.preventDefault();
+          smoothScrollTo(targetElement);
+          if (history.pushState) {
+            history.pushState(null, '', `#${targetId}`);
+          }
+        }
+      });
+    });
+  }
 
   /* ==========================================================================
      1. GESTIÓN DE TEMA (MODO OSCURO PREDETERMINADO / MODO CLARO)
@@ -145,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
 
       if (state.map) {
-        setTimeout(() => state.map.invalidateSize(), 50);
+        state.map.invalidateSize();
+        setTimeout(() => state.map.invalidateSize(), 80);
       }
     }
   }
@@ -256,8 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerCardRenderWithLoading();
       }
 
-      // Desplazar suavemente hacia el Centro de Control
-      document.getElementById('monitor')?.scrollIntoView({ behavior: 'smooth' });
+      // Desplazar suavemente hacia el Centro de Control respetando el navbar sticky
+      smoothScrollTo('monitor');
       showToast('Filtro de tránsito aplicado al Centro de Control', 'info');
     });
   }
@@ -442,25 +489,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. MAPA LEAFLET RÍGIDO Y SINCRONIZACIÓN
+     7. MAPA LEAFLET RÍGIDO Y SINCRONIZACIÓN (SEGÚN GUÍA OFICIAL)
      ========================================================================== */
   function initLeafletMap() {
-    const mapContainer = document.getElementById('leaflet-map');
-    if (!mapContainer || typeof L === 'undefined') return;
+    const mapContainer = document.getElementById('map') || document.getElementById('leaflet-map');
+    if (!mapContainer) return;
 
-    state.map = L.map('leaflet-map', {
+    // Estado ❌ ERROR: Feedback accesible si falla la carga del CDN de Leaflet
+    if (typeof L === 'undefined') {
+      mapContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full p-6 text-center bg-[var(--bg-card)] rounded-[10px] text-[var(--text-secondary)]">
+          <i class="fa-solid fa-triangle-exclamation text-amber-500 text-3xl mb-3"></i>
+          <h4 class="font-bold text-sm text-[var(--text-primary)] mb-1">Error al inicializar Leaflet.js</h4>
+          <p class="text-xs max-w-sm mb-4">No se pudo cargar la librería cartográfica desde el CDN. Verifica tu conexión a internet o los bloqueadores de scripts.</p>
+          <button onclick="window.location.reload()" class="px-4 py-2 btn-transit text-xs font-mono font-bold flex items-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Reintentar Conexión</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    // Inicialización de Leaflet sobre Río Cuarto
+    state.map = L.map(mapContainer.id, {
       center: [BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng],
       zoom: BUSRIO_DATA.cityCenter.zoom,
       zoomControl: true,
       scrollWheelZoom: false
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Capa de tiles OpenStreetMap canónica
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> | BusRío'
     }).addTo(state.map);
 
-    // Renderizado de paradas clave
+    // Herramienta de Captura / Inspección de Coordenadas por Clic (Punto 6 de la Guía)
+    state.map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      console.log(`Coordenadas: lat: ${lat.toFixed(4)}, lng: ${lng.toFixed(4)}`);
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(`
+          <div class="p-1 font-mono text-xs text-[var(--text-primary)]">
+            <span class="font-bold text-[var(--accent-transit)] block uppercase text-[10px] mb-1">📍 Punto en Río Cuarto</span>
+            <div class="space-y-0.5 text-[11px]">
+              <div><strong class="text-[var(--text-secondary)]">Lat:</strong> ${lat.toFixed(4)}</div>
+              <div><strong class="text-[var(--text-secondary)]">Lng:</strong> ${lng.toFixed(4)}</div>
+            </div>
+          </div>
+        `)
+        .openOn(state.map);
+    });
+
+    // Renderizado dinámico de paradas clave (Array + forEach + Template Literals según Guía)
     BUSRIO_DATA.stops.forEach(stop => {
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
@@ -499,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Renderizado de polilíneas
+    // Renderizado de polilíneas de ramales
     BUSRIO_DATA.lines.forEach(line => {
       if (line.routeCoords && line.routeCoords.length > 0) {
         const polyline = L.polyline(line.routeCoords, {
@@ -537,9 +620,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Sincronización continua de tamaño con ResizeObserver y eventos de ventana
+    if (window.ResizeObserver) {
+      const resizeObserver = new ResizeObserver(() => {
+        if (state.map) {
+          state.map.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainer);
+    }
+
     window.addEventListener('resize', () => {
       if (state.map) state.map.invalidateSize();
     });
+
+    window.addEventListener('load', () => {
+      if (state.map) state.map.invalidateSize();
+    });
+
+    setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+    }, 250);
   }
 
   function focusLineOnMap(line, autoSwitchMobile = true) {
@@ -568,9 +669,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Encuadrar el mapa a la traza
+    // Encuadrar el mapa a la traza con actualización de dimensiones
     if (state.routeLayers[line.id]) {
-      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [30, 30] });
+      state.map.invalidateSize();
+      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [40, 40] });
     }
 
     // Actualizar banner flotante en el mapa
@@ -624,6 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeModal() {
       if (!modal) return;
       modal.classList.add('hidden');
+      modal.setAttribute('hidden', '');
       document.body.classList.remove('overflow-hidden');
     }
 
@@ -679,10 +782,14 @@ document.addEventListener('DOMContentLoaded', () => {
       modalMapBtn.onclick = () => {
         modal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
-        focusLineOnMap(line, true);
+        smoothScrollTo('monitor');
+        setTimeout(() => {
+          focusLineOnMap(line, true);
+        }, 150);
       };
     }
 
+    modal.removeAttribute('hidden');
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
   }
@@ -705,8 +812,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const incidentSelect = document.getElementById('report-type');
         if (incidentSelect && incidentText) {
           incidentSelect.value = incidentText;
-          document.getElementById('report-form')?.scrollIntoView({ behavior: 'smooth' });
-          showToast(`Incidencia: ${incidentText}`, 'info');
+          const reportTarget = document.getElementById('report-form-card') || document.getElementById('report-form');
+          smoothScrollTo(reportTarget);
+          showToast(`Incidencia seleccionada: ${incidentText}`, 'info');
         }
       });
     });

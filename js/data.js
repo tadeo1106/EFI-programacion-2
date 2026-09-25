@@ -59,7 +59,7 @@ const BUSRIO_DATA = {
       address: "Bv. Roca y Colombres",
       coords: [-33.1360, -64.3390],
       type: "Sector Este y Comercial",
-      lines: ["linea-11", "linea-5"]
+      lines: ["linea-1", "linea-11", "linea-5"]
     }
   ],
 
@@ -125,7 +125,8 @@ const BUSRIO_DATA = {
       stopsList: [
         "Hospital San Antonio de Padua",
         "Puente Colgante Bicentenario",
-        "Plaza Roca",
+        "Plaza Roca (Centro)",
+        "Centro de Trasbordo Constitución",
         "Parque Sarmiento",
         "Banda Norte (Av. Marcelo T. de Alvear)"
       ],
@@ -133,6 +134,7 @@ const BUSRIO_DATA = {
         [-33.1118, -64.3335],
         [-33.1190, -64.3410],
         [-33.1247, -64.3489],
+        [-33.1275, -64.3482],
         [-33.1160, -64.3520],
         [-33.1120, -64.3560]
       ]
@@ -229,13 +231,14 @@ const BUSRIO_DATA = {
         "Hospital San Antonio de Padua",
         "Puente Colgante Bicentenario (Desvío)",
         "Bv. Buteler y Circunvalación",
-        "Ruta 36",
+        "Ruta 36 (Acceso UNRC)",
         "UNRC - Campus Este"
       ],
       routeCoords: [
         [-33.1118, -64.3335],
         [-33.1180, -64.3250],
         [-33.1150, -64.3120],
+        [-33.1130, -64.3060],
         [-33.1114, -64.3005]
       ]
     },
@@ -270,6 +273,7 @@ const BUSRIO_DATA = {
         [-33.1247, -64.3489],
         [-33.1360, -64.3390],
         [-33.1420, -64.3450],
+        [-33.1460, -64.3490],
         [-33.1500, -64.3520]
       ]
     }
