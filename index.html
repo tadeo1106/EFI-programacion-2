@@ -8,6 +8,11 @@
       content="BusRío - Plataforma utilitaria de tránsito urbano en tiempo real para Río Cuarto. Consulta de frecuencias, garitas, cartografía de ramales y alertas ciudadanas."
     />
     <meta name="theme-color" content="#0F111A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BusRío" />
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <title>BusRío | Centro de Tránsito Urbano · Río Cuarto</title>
 
     <!-- Script anti-FOUT para Modo Oscuro (Predeterminado) y Modo Claro -->
@@ -218,8 +223,7 @@
       #leaflet-map {
         width: 100%;
         height: 100%;
-        min-height: 480px;
-        border-radius: 10px;
+        min-height: 340px;
       }
 
       /* Blindaje específico para modales y elementos con atributo hidden nativo */
@@ -347,6 +351,61 @@
         user-select: text !important;
         -webkit-user-select: text !important;
       }
+
+      /* ==========================================================================
+         TELEMETRÍA Y COLECTIVOS ANIMADOS EN LEAFLET
+         ========================================================================== */
+      .moving-bus-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 1.8s cubic-bezier(0.25, 1, 0.5, 1);
+      }
+      .moving-bus-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        border: 1.5px solid rgba(255, 255, 255, 0.7);
+        white-space: nowrap;
+        cursor: pointer !important;
+      }
+      .moving-bus-ping {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+        animation: busPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        pointer-events: none;
+      }
+      @keyframes busPing {
+        0% { transform: scale(0.9); opacity: 0.8; }
+        70% { transform: scale(1.6); opacity: 0; }
+        100% { transform: scale(1.6); opacity: 0; }
+      }
+
+      /* Botón de Favorito */
+      .btn-fav {
+        transition: all 0.2s ease;
+      }
+      .btn-fav.is-fav {
+        color: #f59e0b !important;
+      }
+
+      /* Modo Ahorro de Datos (Low-Data) */
+      body.low-data-mode .leaflet-tile-pane {
+        filter: grayscale(100%) opacity(35%);
+      }
+      body.low-data-mode .transit-grid-bg {
+        background-image: none !important;
+      }
     </style>
   </head>
 
@@ -433,8 +492,41 @@
           >
         </nav>
 
-        <!-- Acciones: Switch Tema + CTA -->
-        <div class="flex items-center gap-2.5">
+        <!-- Acciones: Low-Data + Tótem + Switch Tema + CTA -->
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <!-- Modo Ahorro de Datos (Low-Data) -->
+          <button
+            type="button"
+            id="low-data-toggle-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Activar Modo Ahorro de Datos (-80% consumo móvil)"
+            aria-label="Alternar modo ahorro de datos"
+          >
+            <i id="low-data-icon" class="fa-solid fa-gauge-simple-high text-xs"></i>
+          </button>
+
+          <!-- Modo Tótem / Pantalla Completa (Salas de Espera) -->
+          <button
+            type="button"
+            id="kiosk-toggle-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Modo Pantalla Tótem (Salas de espera / Pantalla completa)"
+            aria-label="Activar modo pantalla tótem"
+          >
+            <i class="fa-solid fa-tv text-xs"></i>
+          </button>
+
+          <!-- Botón Instalar PWA (Opcional si es compatible) -->
+          <button
+            type="button"
+            id="pwa-install-btn"
+            class="hidden items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Instalar BusRío en este dispositivo"
+            aria-label="Instalar aplicación BusRío"
+          >
+            <i class="fa-solid fa-download text-xs"></i>
+          </button>
+
           <!-- Switch Tema -->
           <button
             type="button"
@@ -520,6 +612,24 @@
           <i class="fa-solid fa-users mr-2 text-[var(--accent-transit)]"></i>
           Equipo
         </a>
+        <div class="pt-2 border-t border-[var(--border-color)] flex gap-2">
+          <button
+            type="button"
+            id="mobile-kiosk-btn"
+            class="flex-1 py-2 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--accent-transit)] font-mono text-[11px] font-bold flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-solid fa-tv"></i>
+            <span>Modo Tótem</span>
+          </button>
+          <button
+            type="button"
+            id="mobile-low-data-btn"
+            class="flex-1 py-2 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-mono text-[11px] font-bold flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-solid fa-gauge-simple-high"></i>
+            <span>Low-Data</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -563,85 +673,160 @@
                 de combinación.
               </p>
 
-              <!-- Tarjeta UI: Buscador de Recorridos -->
+              <!-- Tarjeta UI: Buscador de Recorridos & Planificador ¿Cómo Llego? -->
               <div class="transit-card p-5 space-y-4">
-                <div
-                  class="flex items-center justify-between border-b border-[var(--border-color)] pb-3"
-                >
-                  <span
-                    class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2"
-                  >
-                    <i
-                      class="fa-solid fa-route text-[var(--accent-transit)]"
-                    ></i>
-                    <span>Buscador de Recorridos</span>
-                  </span>
-                  <span class="font-mono text-[11px] text-[var(--text-muted)]"
+                <!-- Selector de Pestañas del Hero -->
+                <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+                  <div class="flex items-center gap-1.5 p-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)]">
+                    <button
+                      type="button"
+                      id="hero-tab-search"
+                      class="px-2.5 py-1 rounded text-xs font-mono font-bold transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center gap-1.5"
+                    >
+                      <i class="fa-solid fa-route"></i>
+                      <span>Consultar Ramal</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="hero-tab-planner"
+                      class="px-2.5 py-1 rounded text-xs font-mono font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5"
+                    >
+                      <i class="fa-solid fa-compass"></i>
+                      <span>¿Cómo Llego?</span>
+                    </button>
+                  </div>
+                  <span class="hidden sm:inline font-mono text-[11px] text-[var(--text-muted)]"
                     >6 Ramales Activos</span
                   >
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <label
-                      for="hero-line-select"
-                      class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase"
-                      >Ramal / Línea</label
-                    >
-                    <select
-                      id="hero-line-select"
-                      class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
-                    >
-                      <option value="">-- Todas las Líneas --</option>
-                      <option value="linea-1">Línea 1 (UNRC - Alberdi)</option>
-                      <option value="linea-2">
-                        Línea 2 (Hospital - Banda Norte)
-                      </option>
-                      <option value="linea-8">
-                        Línea 8 (Banda Norte - Centro)
-                      </option>
-                      <option value="linea-11">
-                        Línea 11 (Alberdi - Constitución)
-                      </option>
-                      <option value="linea-14">
-                        Línea 14 (Hospital - UNRC)
-                      </option>
-                      <option value="linea-5">Línea 5 (Bimaco - Centro)</option>
-                    </select>
+                <!-- VISTA 1: Buscador de Ramal / Garita (Original) -->
+                <div id="hero-view-search" class="space-y-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label
+                        for="hero-line-select"
+                        class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase"
+                        >Ramal / Línea</label
+                      >
+                      <select
+                        id="hero-line-select"
+                        class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
+                      >
+                        <option value="">-- Todas las Líneas --</option>
+                        <option value="linea-1">Línea 1 (UNRC - Alberdi)</option>
+                        <option value="linea-2">
+                          Línea 2 (Hospital - Banda Norte)
+                        </option>
+                        <option value="linea-8">
+                          Línea 8 (Banda Norte - Centro)
+                        </option>
+                        <option value="linea-11">
+                          Línea 11 (Alberdi - Constitución)
+                        </option>
+                        <option value="linea-14">
+                          Línea 14 (Hospital - UNRC)
+                        </option>
+                        <option value="linea-5">Línea 5 (Bimaco - Centro)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        for="hero-stop-select"
+                        class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase"
+                        >Garita / Nodo</label
+                      >
+                      <select
+                        id="hero-stop-select"
+                        class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
+                      >
+                        <option value="all">-- Todas las Garitas --</option>
+                        <option value="plaza-roca">Plaza Roca (Centro)</option>
+                        <option value="hospital-padua">
+                          Hospital San Antonio
+                        </option>
+                        <option value="unrc-campus">Campus UNRC</option>
+                        <option value="centro-trasbordo">
+                          Trasbordo Constitución
+                        </option>
+                        <option value="banda-norte">Banda Norte</option>
+                        <option value="barrio-alberdi">Barrio Alberdi</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      for="hero-stop-select"
-                      class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase"
-                      >Garita / Nodo</label
-                    >
-                    <select
-                      id="hero-stop-select"
-                      class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
-                    >
-                      <option value="all">-- Todas las Garitas --</option>
-                      <option value="plaza-roca">Plaza Roca (Centro)</option>
-                      <option value="hospital-padua">
-                        Hospital San Antonio
-                      </option>
-                      <option value="unrc-campus">Campus UNRC</option>
-                      <option value="centro-trasbordo">
-                        Trasbordo Constitución
-                      </option>
-                      <option value="banda-norte">Banda Norte</option>
-                      <option value="barrio-alberdi">Barrio Alberdi</option>
-                    </select>
-                  </div>
+
+                  <button
+                    type="button"
+                    id="hero-search-btn"
+                    class="w-full py-3 btn-transit flex items-center justify-center gap-2 text-xs uppercase font-mono tracking-wider"
+                  >
+                    <span>Consultar y Trazar en Mapa</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  id="hero-search-btn"
-                  class="w-full py-3 btn-transit flex items-center justify-center gap-2 text-xs uppercase font-mono tracking-wider"
-                >
-                  <span>Consultar y Trazar en Mapa</span>
-                  <i class="fa-solid fa-arrow-right text-xs"></i>
-                </button>
+                <!-- VISTA 2: Planificador de Viajes ¿Cómo Llego? -->
+                <div id="hero-view-planner" class="hidden space-y-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label
+                        for="trip-origin-select"
+                        class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase flex items-center gap-1.5"
+                      >
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>Origen (¿Dónde estás?)</span>
+                      </label>
+                      <select
+                        id="trip-origin-select"
+                        class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
+                      >
+                        <option value="barrio-alberdi">Barrio Alberdi (Bv. Roca)</option>
+                        <option value="banda-norte">Banda Norte (Alvear y Garibaldi)</option>
+                        <option value="plaza-roca" selected>Plaza Roca (Centro)</option>
+                        <option value="hospital-padua">Hospital San Antonio de Padua</option>
+                        <option value="unrc-campus">UNRC (Campus Universitario)</option>
+                        <option value="centro-trasbordo">Centro de Trasbordo Constitución</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        for="trip-destination-select"
+                        class="block font-mono text-[11px] text-[var(--text-secondary)] mb-1 uppercase flex items-center gap-1.5"
+                      >
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>Destino (¿A dónde vas?)</span>
+                      </label>
+                      <select
+                        id="trip-destination-select"
+                        class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium focus:outline-none focus:border-[var(--accent-transit)]"
+                      >
+                        <option value="unrc-campus" selected>UNRC (Campus Universitario)</option>
+                        <option value="hospital-padua">Hospital San Antonio de Padua</option>
+                        <option value="plaza-roca">Plaza Roca (Centro)</option>
+                        <option value="banda-norte">Banda Norte (Alvear y Garibaldi)</option>
+                        <option value="barrio-alberdi">Barrio Alberdi (Bv. Roca)</option>
+                        <option value="centro-trasbordo">Centro de Trasbordo Constitución</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="plan-trip-btn"
+                    class="w-full py-3 btn-transit flex items-center justify-center gap-2 text-xs uppercase font-mono tracking-wider"
+                  >
+                    <i class="fa-solid fa-compass text-xs"></i>
+                    <span>Calcular Mejor Recorrido</span>
+                  </button>
+
+                  <!-- Resultado del Planificador -->
+                  <div
+                    id="trip-result-box"
+                    class="hidden p-3.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] space-y-2.5 text-xs font-mono"
+                  >
+                    <!-- Renderizado dinámicamente desde app.js -->
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -875,7 +1060,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <!-- COLUMNA 1: Panel de Líneas (Altura Fija Estable sin saltos) -->
             <div id="monitor-list-col" class="lg:col-span-5 w-full block">
-              <div class="transit-card p-4 flex flex-col h-[580px]">
+              <div class="transit-card p-4 flex flex-col h-[500px] sm:h-[580px]">
                 <!-- Cabecera del Panel -->
                 <div
                   class="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-color)] shrink-0 font-mono text-xs"
@@ -1003,58 +1188,82 @@
             <!-- COLUMNA 2: Mapa Leaflet Rígido (Sin adornos) -->
             <div
               id="monitor-map-col"
-              class="lg:col-span-7 w-full hidden lg:block"
+              class="lg:col-span-7 w-full block"
             >
-              <div class="transit-card p-1.5 relative flex flex-col h-[580px]">
-                <!-- Contenedor del Mapa (Leaflet según guía oficial) -->
+              <div class="transit-card p-0 flex flex-col h-[520px] sm:h-[580px] overflow-hidden">
+                <!-- Cabecera Utilitaria del Mapa (Zero Colisiones) -->
                 <div
-                  id="map"
-                  class="w-full h-full min-h-[480px] rounded-[10px] z-10"
-                ></div>
-
-                <!-- Banner Flotante de Ruta Activa -->
-                <div
-                  id="active-route-banner"
-                  class="absolute top-3.5 left-3.5 z-[800] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] flex items-center gap-2 text-xs font-mono text-[var(--text-primary)] hidden max-w-[85%] sm:max-w-md"
+                  class="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--border-color)] bg-[var(--bg-card)] font-mono text-xs"
                 >
-                  <span
-                    id="active-route-badge"
-                    class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-transit)] text-slate-950 shrink-0"
-                    >Línea 1</span
-                  >
-                  <span
-                    id="active-route-text"
-                    class="truncate font-sans font-semibold"
-                    >Campus UNRC</span
-                  >
-                  <button
-                    type="button"
-                    id="clear-route-focus-btn"
-                    class="text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-1 p-0.5"
-                    title="Mostrar todas las líneas"
-                  >
-                    <i class="fa-solid fa-xmark text-xs"></i>
-                  </button>
+                  <!-- Lado Izquierdo: Ruta Activa / Título General -->
+                  <div class="flex items-center min-w-0 pr-1">
+                    <div
+                      id="active-route-banner"
+                      class="hidden items-center gap-2 text-xs font-mono text-[var(--text-primary)] min-w-0"
+                    >
+                      <span
+                        id="active-route-badge"
+                        class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-transit)] text-slate-950 shrink-0"
+                        >Línea 1</span
+                      >
+                      <span
+                        id="active-route-text"
+                        class="truncate font-sans font-semibold text-xs text-[var(--text-primary)]"
+                        >Campus UNRC</span
+                      >
+                      <button
+                        type="button"
+                        id="clear-route-focus-btn"
+                        class="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 shrink-0"
+                        title="Mostrar todas las líneas"
+                      >
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                      </button>
+                    </div>
+                    <div
+                      id="default-route-banner"
+                      class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)]"
+                    >
+                      <i class="fa-solid fa-map-location-dot text-[var(--accent-transit)]"></i>
+                      <span class="font-bold text-[var(--text-primary)] text-xs">Red Urbana de Colectivos</span>
+                    </div>
+                  </div>
+
+                  <!-- Lado Derecho: Telemetría y Recentrado -->
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div
+                      id="telemetry-status-pill"
+                      class="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-[11px] font-mono text-[var(--text-primary)]"
+                      title="Telemetría viva simulada en Río Cuarto"
+                    >
+                      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span class="hidden sm:inline">6 Unidades</span>
+                    </div>
+                    <button
+                      type="button"
+                      id="map-reset-btn"
+                      class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-xs font-mono font-bold text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all"
+                      title="Recentrar mapa en Río Cuarto"
+                    >
+                      <i
+                        class="fa-solid fa-crosshairs text-[var(--accent-transit)] text-xs"
+                      ></i>
+                      <span class="hidden sm:inline text-[11px]">Recentrar</span>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Controles Flotantes -->
-                <div class="absolute top-3.5 right-3.5 z-[800]">
-                  <button
-                    type="button"
-                    id="map-reset-btn"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-xs font-mono font-bold text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all"
-                    title="Recentrar mapa en Río Cuarto"
-                  >
-                    <i
-                      class="fa-solid fa-crosshairs text-[var(--accent-transit)]"
-                    ></i>
-                    <span class="hidden sm:inline">Recentrar</span>
-                  </button>
+                <!-- Visor Cartográfico Central (Leaflet) -->
+                <div class="flex-grow relative w-full h-[400px] sm:h-[480px]">
+                  <div
+                    id="map"
+                    class="w-full h-full z-10"
+                  ></div>
                 </div>
 
-                <!-- Leyenda Técnica Inferior -->
+                <!-- Pie de Tarjeta: Leyenda Técnica de Ramales -->
                 <div
-                  class="absolute bottom-3.5 left-3.5 right-3.5 z-[800] bg-[var(--bg-card)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-secondary)] hidden sm:flex items-center justify-between gap-2 overflow-x-auto"
+                  class="shrink-0 px-3 py-1.5 border-t border-[var(--border-color)] bg-[var(--bg-card)] text-[10px] font-mono text-[var(--text-secondary)] flex items-center justify-between gap-2 overflow-x-auto"
                 >
                   <span class="font-bold text-[var(--text-primary)] shrink-0"
                     >Ramales:</span
@@ -1227,6 +1436,128 @@
                     >Válido en días hábiles, sábados y feriados en cualquier
                     punto de conexión.</span
                   >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini-Calculadora Interactiva de Ahorro Mensual -->
+          <div class="mt-10 pt-8 border-t border-[var(--border-color)]">
+            <div class="max-w-3xl mx-auto transit-card p-6 space-y-5">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[var(--border-color)]"
+              >
+                <div>
+                  <span
+                    class="font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--accent-transit)] flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Simulador Tarifario de Bolsillo</span>
+                  </span>
+                  <h3
+                    class="font-heading font-bold text-lg sm:text-xl text-[var(--text-primary)]"
+                  >
+                    Calculadora de Ahorro Mensual con Trasbordo
+                  </h3>
+                </div>
+                <div
+                  class="font-mono text-xs px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-secondary)] shrink-0"
+                >
+                  Boleto Urbano: <strong class="text-[var(--text-primary)]">$1.150</strong>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <!-- Controles: Slider de viajes y selector de días -->
+                <div class="space-y-4">
+                  <div>
+                    <div class="flex justify-between text-xs font-mono mb-1.5">
+                      <label
+                        for="calc-trips-slider"
+                        class="text-[var(--text-secondary)] uppercase"
+                        >Combinaciones por día:</label
+                      >
+                      <span
+                        id="calc-trips-val"
+                        class="font-bold text-[var(--accent-transit)] text-sm"
+                        >2 viajes</span
+                      >
+                    </div>
+                    <input
+                      type="range"
+                      id="calc-trips-slider"
+                      min="1"
+                      max="4"
+                      value="2"
+                      step="1"
+                      class="w-full accent-[var(--accent-transit)] cursor-pointer"
+                    />
+                    <div
+                      class="flex justify-between text-[10px] font-mono text-[var(--text-muted)] mt-1"
+                    >
+                      <span>1 (Solo ida)</span>
+                      <span>2 (Ida y vuelta)</span>
+                      <span>3 (Estudio/Trabajo)</span>
+                      <span>4 (Intensivo)</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      for="calc-days-select"
+                      class="block text-xs font-mono uppercase text-[var(--text-secondary)] mb-1.5"
+                      >Frecuencia de viaje al mes:</label
+                    >
+                    <select
+                      id="calc-days-select"
+                      class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-transit)]"
+                    >
+                      <option value="20">20 días hábiles (Lunes a Viernes estándar)</option>
+                      <option value="24" selected>
+                        24 días (Comercio / Estudiante con sábados)
+                      </option>
+                      <option value="30">30 días continuos (Uso diario intensivo)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Resumen de Costos y Ahorro -->
+                <div
+                  class="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] space-y-3 font-mono"
+                >
+                  <div
+                    class="flex justify-between items-center text-xs pb-2 border-b border-[var(--border-color)]"
+                  >
+                    <span class="text-[var(--text-muted)]">Sin combinación (2 boletos):</span>
+                    <span id="calc-cost-no-transfer" class="line-through text-rose-400 font-bold"
+                      >$110.400</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center text-xs pb-2 border-b border-[var(--border-color)]"
+                  >
+                    <span class="text-[var(--text-muted)]">Con BusRío (2do tramo $0):</span>
+                    <span id="calc-cost-with-transfer" class="text-[var(--text-primary)] font-bold"
+                      >$55.200</span
+                    >
+                  </div>
+                  <div
+                    class="pt-1 text-center bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3"
+                  >
+                    <span
+                      class="text-[10px] uppercase text-emerald-500 font-bold block mb-0.5 tracking-wider"
+                      >Dinero que ahorras por mes:</span
+                    >
+                    <span
+                      id="calc-total-saved"
+                      class="text-2xl sm:text-3xl font-extrabold text-emerald-400 block"
+                      >+$55.200</span
+                    >
+                    <span
+                      class="block text-[10px] text-emerald-600 dark:text-emerald-400/80 mt-1"
+                      >¡50% de reducción en el costo de transporte!</span
+                    >
+                  </div>
                 </div>
               </div>
             </div>
@@ -1920,6 +2251,102 @@
               <span>Trazar en Mapa</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+       MODO TÓTEM / PANTALLA COMPLETA (SALAS DE ESPERA HOSPITAL / UNRC)
+       ========================================================================= -->
+    <div
+      id="kiosk-mode-view"
+      class="hidden fixed inset-0 z-[2500] bg-[#0A0D14] text-white flex flex-col p-4 sm:p-8 overflow-hidden select-none"
+    >
+      <!-- Cabecera del Tótem -->
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-800 shrink-0"
+      >
+        <div class="flex items-center justify-between sm:justify-start gap-3 sm:gap-4">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center text-base sm:text-lg font-bold shrink-0"
+            >
+              <i class="fa-solid fa-bus"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="font-heading font-extrabold text-lg sm:text-2xl tracking-tight">
+                  Bus<span class="text-[var(--accent-transit)]">Río</span>
+                </h2>
+                <span
+                  class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider"
+                  >Sala de Espera</span
+                >
+              </div>
+              <p class="text-[11px] sm:text-xs font-mono text-slate-400">
+                Río Cuarto · Monitoreo en Vivo
+              </p>
+            </div>
+          </div>
+
+          <!-- Botón Salir visible en móvil en la fila superior -->
+          <button
+            type="button"
+            class="kiosk-exit-trigger sm:hidden px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-200 active:bg-slate-800 font-mono text-xs font-bold transition-all flex items-center gap-1.5"
+            aria-label="Cerrar sala de espera"
+          >
+            <i class="fa-solid fa-xmark"></i>
+            <span>Cerrar</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-5">
+          <div class="text-left sm:text-right">
+            <div
+              id="kiosk-clock"
+              class="font-mono text-xl sm:text-3xl font-extrabold text-[var(--accent-transit)] tracking-widest"
+            >
+              12:00:00
+            </div>
+            <div
+              id="kiosk-date"
+              class="text-[10px] sm:text-[11px] font-mono text-slate-400 uppercase"
+            >
+              Río Cuarto, CBA
+            </div>
+          </div>
+          <!-- Botón Salir en escritorio -->
+          <button
+            type="button"
+            id="kiosk-close-btn"
+            class="kiosk-exit-trigger hidden sm:flex px-3.5 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 font-mono text-xs font-bold transition-all items-center gap-2"
+            title="Salir del modo pantalla completa"
+          >
+            <i class="fa-solid fa-compress"></i>
+            <span>Salir (Esc)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablero Central de Arribos en Alta Definición -->
+      <div class="flex-grow py-4 sm:py-6 overflow-y-auto scrollbar-transit">
+        <div class="max-w-6xl mx-auto space-y-3" id="kiosk-lines-board">
+          <!-- Renderizado dinámicamente desde app.js con tipografía gigante -->
+        </div>
+      </div>
+
+      <!-- Tira Inferior de Noticias y Estado -->
+      <div
+        class="pt-3 sm:pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs font-mono text-slate-400 shrink-0"
+      >
+        <div class="flex items-center gap-2 text-center sm:text-left">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+          <span class="text-emerald-400 font-bold uppercase">Telemetría Urbana Activa</span>
+          <span class="text-slate-600 hidden sm:inline">·</span>
+          <span class="hidden sm:inline">Boleto Combinado Municipal: 60 min sin costo extra</span>
+        </div>
+        <div class="text-slate-500 text-[10px] sm:text-xs text-center sm:text-right">
+          Proyectado en Salas de Espera · UNRC · Hospital Central · Plaza Roca
         </div>
       </div>
     </div>

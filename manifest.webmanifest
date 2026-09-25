@@ -1,0 +1,26 @@
+{
+  "name": "BusRío - Monitor Urbano en Tiempo Real",
+  "short_name": "BusRío",
+  "description": "Monitor interactivo de frecuencias, paradas y recorridos de colectivos urbanos en Río Cuarto, Córdoba.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F111A",
+  "theme_color": "#F59E0B",
+  "orientation": "portrait-primary",
+  "lang": "es-AR",
+  "categories": ["transportation", "navigation", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

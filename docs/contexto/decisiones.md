@@ -138,6 +138,18 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
      - Línea 14 y Línea 5: Traza georreferenciada de 5 puntos exacta coincidente con sus 5 paradas.
 * **Consecuencias**: Ergonomía visual óptima, navegación fluida sin cortes de títulos y mapa 100% verificado y fidedigno a la red de colectivos de Río Cuarto.
 
+---
 
-
-
+## [ADR-011] Telemetría Viva, PWA Real, Planificador '¿Cómo Llego?', Favoritos, Modo Tótem y Calculadora Tarifaria (Rama v2.1)
+* **Fecha y Hora**: 2026-09-25 14:35 UTC-3
+* **Estado**: Aceptado
+* **Contexto**: Para elevar el proyecto BusRío al máximo estándar de entrega de la EFI de Programación II, se requirió implementar 7 capacidades avanzadas sin romper la arquitectura frontend pura ni incorporar librerías pesadas de pago.
+* **Decisión**:
+  1. **Planificador de Viajes '¿Cómo Llego?'**: Lógica algorítmica puramente en el cliente que evalúa origen y destino, detecta si existe línea directa o calcula el transbordo óptimo en nodos de conexión (Plaza Roca / Centro de Trasbordo), verificando la ventana gratuita de 60 minutos y permitiendo trazar la ruta en el mapa.
+  2. **Telemetría Simulada en Vivo**: Marcadores dinámicos de colectivos en Leaflet (`DivIcon` con número de línea, pulso animado, popups con coche, velocidad en km/h y ocupación) que se desplazan de manera continua a lo largo de las coordenadas de cada ramal.
+  3. **PWA Real**: Manifiesto web oficial (`manifest.webmanifest`), icono SVG vectorial multi-resolución y Service Worker (`sw.js`) con estrategia Cache-First y resiliencia offline para paradas sin cobertura celular.
+  4. **Sistema de Favoritos en LocalStorage**: Pestaña dedicada "⭐ Favoritos" y botón estrella en cada tarjeta de línea, permitiendo a pasajeros habituales priorizar sus ramales frecuentes.
+  5. **Modo Tótem / Kiosco**: Vista en pantalla completa con reloj digital, tipografía monospace gigante (`JetBrains Mono`) y tiempos de llegada de alto contraste, diseñada para proyectarse en salas de espera de la UNRC o del Hospital San Antonio de Padua.
+  6. **Calculadora Interactiva de Ahorro**: Simulador financiero en la sección de trasbordos que calcula en tiempo real el dinero mensual (\$ ARS) que ahorra el usuario al utilizar el régimen de combinación de Río Cuarto.
+  7. **Modo Low-Data**: Interruptor de ahorro de datos para conexiones 3G débiles que atenúa los azulejos de OpenStreetMap y optimiza el consumo de batería y CPU móvil.
+* **Consecuencias**: Solución integral, atractiva y funcional que cumple y supera ampliamente los requisitos técnicos y de producto de la consigna.

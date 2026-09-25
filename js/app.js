@@ -15,23 +15,35 @@ document.addEventListener('DOMContentLoaded', () => {
     map: null,
     routeLayers: {},
     stopMarkers: {},
-    activeLineId: null
+    busMarkers: {},
+    activeLineId: null,
+    currentMobileView: 'list',
+    favorites: JSON.parse(localStorage.getItem('busrio_favs') || '[]'),
+    isLowData: localStorage.getItem('busrio_low_data') === 'true',
+    isKioskMode: false,
+    busTelemetryInterval: null,
+    kioskClockInterval: null
   };
 
   // Inicialización de componentes
+  initPWA();
   sanitizeContentEditable();
   initSmoothAnchorNavigation();
   initTheme();
   initMobileMenu();
+  initLeafletMap();
   initMobileViewSwitcher();
+  initLowDataMode();
+  initKioskMode();
   initStopFilterTabs();
   initSearch();
   initHeroPlanner();
+  initHeroTripPlanner();
   initCardGrid();
   initAlertsFeed();
   initAlertForm();
+  initFareSavingsCalculator();
   initModal();
-  initLeafletMap();
   initLiveCountdown();
 
   /* ==========================================================================
@@ -75,6 +87,232 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       });
+    });
+  }
+
+  /* ==========================================================================
+     PWA SERVICE WORKER & INSTALACIÓN
+     ========================================================================== */
+  function initPWA() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('SW registration warning:', err);
+        });
+      });
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.classList.add('flex');
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            showToast('¡BusRío instalada en tu dispositivo!', 'success');
+          }
+          deferredPrompt = null;
+          installBtn.classList.add('hidden');
+          installBtn.classList.remove('flex');
+        } else {
+          showToast('Para instalar: añade a la pantalla de inicio desde el menú de tu navegador.', 'info');
+        }
+      });
+    }
+  }
+
+  /* ==========================================================================
+     MODO AHORRO DE DATOS (LOW-DATA)
+     ========================================================================== */
+  function initLowDataMode() {
+    const btn = document.getElementById('low-data-toggle-btn');
+    const mobileBtn = document.getElementById('mobile-low-data-btn');
+
+    function applyLowData(active) {
+      state.isLowData = active;
+      localStorage.setItem('busrio_low_data', active ? 'true' : 'false');
+
+      if (active) {
+        document.body.classList.add('low-data-mode');
+        if (btn) {
+          btn.classList.add('border-emerald-500', 'text-emerald-400', 'bg-emerald-500/10');
+          btn.classList.remove('border-[var(--border-color)]', 'text-[var(--text-secondary)]');
+        }
+        if (mobileBtn) {
+          mobileBtn.classList.add('border-emerald-500', 'text-emerald-400', 'bg-emerald-500/10');
+        }
+      } else {
+        document.body.classList.remove('low-data-mode');
+        if (btn) {
+          btn.classList.remove('border-emerald-500', 'text-emerald-400', 'bg-emerald-500/10');
+          btn.classList.add('border-[var(--border-color)]', 'text-[var(--text-secondary)]');
+        }
+        if (mobileBtn) {
+          mobileBtn.classList.remove('border-emerald-500', 'text-emerald-400', 'bg-emerald-500/10');
+        }
+      }
+    }
+
+    applyLowData(state.isLowData);
+
+    const toggle = () => {
+      const newState = !state.isLowData;
+      applyLowData(newState);
+      showToast(
+        newState ? 'Modo Low-Data activado (-80% consumo)' : 'Modo Low-Data desactivado',
+        newState ? 'success' : 'info'
+      );
+    };
+
+    if (btn) btn.addEventListener('click', toggle);
+    if (mobileBtn) mobileBtn.addEventListener('click', toggle);
+  }
+
+  /* ==========================================================================
+     MODO PANTALLA TÓTEM / KIOSCO (SALAS DE ESPERA HOSPITAL / UNRC)
+     ========================================================================== */
+  function initKioskMode() {
+    const btn = document.getElementById('kiosk-toggle-btn');
+    const mobileBtn = document.getElementById('mobile-kiosk-btn');
+    const kioskView = document.getElementById('kiosk-mode-view');
+    const clockEl = document.getElementById('kiosk-clock');
+    const dateEl = document.getElementById('kiosk-date');
+
+    function updateKioskClock() {
+      const now = new Date();
+      if (clockEl) {
+        clockEl.textContent = now.toLocaleTimeString('es-AR', { hour12: false });
+      }
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('es-AR', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).toUpperCase();
+      }
+    }
+
+    function renderKioskBoard() {
+      const board = document.getElementById('kiosk-lines-board');
+      if (!board) return;
+      board.innerHTML = '';
+
+      BUSRIO_DATA.lines.forEach(line => {
+        const item = document.createElement('div');
+        item.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800 font-mono transition-all hover:border-slate-700';
+
+        let statusColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+        let statusLabel = 'EN HORARIO';
+        if (line.status === 'warning') {
+          statusColor = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+          statusLabel = 'DEMORADO';
+        } else if (line.status === 'danger') {
+          statusColor = 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+          statusLabel = 'DESVÍO';
+        }
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3 sm:gap-4">
+            <span class="w-10 h-10 rounded-lg text-slate-950 font-bold text-sm sm:text-base flex items-center justify-center shrink-0" style="background-color: ${line.color};">
+              ${line.number.toUpperCase()}
+            </span>
+            <div class="min-w-0">
+              <h3 class="font-heading font-bold text-sm sm:text-base text-white truncate">${line.name}</h3>
+              <p class="text-[11px] sm:text-xs text-slate-400 font-sans truncate">Próxima: <strong class="text-slate-200">${line.stopName}</strong> · Coche: ${line.busUnit || 'En servicio'}</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-800/80">
+            <span class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold border ${statusColor}">
+              ${statusLabel}
+            </span>
+            <div class="text-right">
+              <span class="text-[10px] sm:text-xs text-slate-400 uppercase block font-sans">Arribo en</span>
+              <span class="text-xl sm:text-3xl font-extrabold text-[var(--accent-transit)] tracking-tight">
+                ${line.etaMinutes} MIN
+              </span>
+            </div>
+          </div>
+        `;
+        board.appendChild(item);
+      });
+    }
+
+    function openKiosk() {
+      if (!kioskView) return;
+
+      // Cerrar menú móvil si estuviera abierto de fondo
+      const mobileMenu = document.getElementById('mobile-menu');
+      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.add('hidden');
+        if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      state.isKioskMode = true;
+      kioskView.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      renderKioskBoard();
+      updateKioskClock();
+      state.kioskClockInterval = setInterval(updateKioskClock, 1000);
+
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      showToast('Modo Sala de Espera Activo', 'info');
+    }
+
+    function closeKiosk() {
+      if (!kioskView) return;
+      state.isKioskMode = false;
+      kioskView.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      if (state.kioskClockInterval) {
+        clearInterval(state.kioskClockInterval);
+        state.kioskClockInterval = null;
+      }
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    if (btn) btn.addEventListener('click', openKiosk);
+    if (mobileBtn) mobileBtn.addEventListener('click', openKiosk);
+
+    // Conectar todos los disparadores de cierre (móvil y escritorio)
+    document.querySelectorAll('.kiosk-exit-trigger').forEach(trigger => {
+      trigger.addEventListener('click', closeKiosk);
+    });
+    const desktopCloseBtn = document.getElementById('kiosk-close-btn');
+    if (desktopCloseBtn) {
+      desktopCloseBtn.addEventListener('click', closeKiosk);
+    }
+
+    // Sincronización oficial con el evento Fullscreen nativo del navegador (Esc en PC)
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && state.isKioskMode) {
+        closeKiosk();
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    document.addEventListener('mozfullscreenchange', onFullscreenChange);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.isKioskMode) {
+        closeKiosk();
+      }
     });
   }
 
@@ -146,55 +384,99 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3. ALTERNADOR DE VISTA EN CELULARES (LISTA <-> MAPA)
+     3. ALTERNADOR DE VISTA EN CELULARES (LISTA <-> MAPA) Y CONTROL RESPONSIVO
      ========================================================================== */
-  function initMobileViewSwitcher() {
+  function applyResponsiveView() {
     const btnList = document.getElementById('mobile-view-list');
     const btnMap = document.getElementById('mobile-view-map');
     const listCol = document.getElementById('monitor-list-col');
     const mapCol = document.getElementById('monitor-map-col');
 
-    if (!btnList || !btnMap || !listCol || !mapCol) return;
+    if (!listCol || !mapCol) return;
 
-    btnList.addEventListener('click', () => {
-      switchMobileView('list');
-    });
+    const isDesktop = window.innerWidth >= 1024;
 
-    btnMap.addEventListener('click', () => {
-      switchMobileView('map');
-    });
-  }
-
-  function switchMobileView(view) {
-    const btnList = document.getElementById('mobile-view-list');
-    const btnMap = document.getElementById('mobile-view-map');
-    const listCol = document.getElementById('monitor-list-col');
-    const mapCol = document.getElementById('monitor-map-col');
-
-    if (!btnList || !btnMap || !listCol || !mapCol) return;
-
-    if (view === 'list') {
+    if (isDesktop) {
+      // En escritorio (>= 1024px), ambas columnas coexisten en el grid
       listCol.classList.remove('hidden');
       listCol.classList.add('block');
-      mapCol.classList.add('hidden');
-      mapCol.classList.remove('block');
-
-      btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
-      btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
-    } else {
-      listCol.classList.add('hidden');
-      listCol.classList.remove('block');
       mapCol.classList.remove('hidden');
       mapCol.classList.add('block');
 
-      btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
-      btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
-
       if (state.map) {
         state.map.invalidateSize();
-        setTimeout(() => state.map.invalidateSize(), 80);
+      }
+    } else {
+      // En dispositivos móviles (< 1024px), mostrar únicamente la vista activa seleccionada
+      if (state.currentMobileView === 'map') {
+        listCol.classList.add('hidden');
+        listCol.classList.remove('block');
+        mapCol.classList.remove('hidden');
+        mapCol.classList.add('block');
+
+        if (btnMap && btnList) {
+          btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
+          btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+        }
+
+        if (state.map) {
+          state.map.invalidateSize();
+        }
+      } else {
+        // Vista de lista por defecto en móvil
+        state.currentMobileView = 'list';
+        listCol.classList.remove('hidden');
+        listCol.classList.add('block');
+        mapCol.classList.add('hidden');
+        mapCol.classList.remove('block');
+
+        if (btnList && btnMap) {
+          btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
+          btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
+        }
       }
     }
+  }
+
+  function switchMobileView(view) {
+    state.currentMobileView = view;
+    applyResponsiveView();
+
+    if (view === 'map' && state.map) {
+      state.map.invalidateSize();
+      setTimeout(() => {
+        if (state.map) state.map.invalidateSize();
+      }, 60);
+    }
+  }
+
+  function initMobileViewSwitcher() {
+    const btnList = document.getElementById('mobile-view-list');
+    const btnMap = document.getElementById('mobile-view-map');
+
+    if (btnList) {
+      btnList.addEventListener('click', () => {
+        switchMobileView('list');
+      });
+    }
+
+    if (btnMap) {
+      btnMap.addEventListener('click', () => {
+        switchMobileView('map');
+      });
+    }
+
+    // Inicializar estado responsivo
+    applyResponsiveView();
+
+    // Sincronizar dinámicamente al redimensionar ventana (restaura la columna al volver a PC)
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        applyResponsiveView();
+      }, 50);
+    });
   }
 
   /* ==========================================================================
@@ -209,6 +491,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botón "Todas las Garitas"
     const allBtn = createTabButton('all', 'Todas las Garitas', 'fa-solid fa-layer-group', true);
     tabsContainer.appendChild(allBtn);
+
+    // Botón "⭐ Favoritos" (Persistido en localStorage)
+    const favsBtn = createTabButton('favorites', '⭐ Favoritos', 'fa-solid fa-star', false);
+    tabsContainer.appendChild(favsBtn);
 
     // Botones por cada garita
     BUSRIO_DATA.stops.forEach(stop => {
@@ -253,6 +539,13 @@ document.addEventListener('DOMContentLoaded', () => {
     triggerCardRenderWithLoading();
 
     // Centrado en el mapa al seleccionar garita
+    if (id === 'favorites') {
+      if (state.map) {
+        state.map.flyTo([BUSRIO_DATA.cityCenter.lat, BUSRIO_DATA.cityCenter.lng], BUSRIO_DATA.cityCenter.zoom, { duration: 0.8 });
+      }
+      return;
+    }
+
     if (id !== 'all' && state.map) {
       const targetStop = BUSRIO_DATA.stops.find(s => s.id === id);
       if (targetStop) {
@@ -309,6 +602,169 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* ==========================================================================
+     5.1 PLANIFICADOR DE VIAJES INTELIGENTE "¿CÓMO LLEGO?"
+     ========================================================================== */
+  function initHeroTripPlanner() {
+    const tabSearch = document.getElementById('hero-tab-search');
+    const tabPlanner = document.getElementById('hero-tab-planner');
+    const viewSearch = document.getElementById('hero-view-search');
+    const viewPlanner = document.getElementById('hero-view-planner');
+    const planTripBtn = document.getElementById('plan-trip-btn');
+    const originSelect = document.getElementById('trip-origin-select');
+    const destSelect = document.getElementById('trip-destination-select');
+    const resultBox = document.getElementById('trip-result-box');
+
+    if (!tabSearch || !tabPlanner || !viewSearch || !viewPlanner) return;
+
+    tabSearch.addEventListener('click', () => {
+      viewSearch.classList.remove('hidden');
+      viewPlanner.classList.add('hidden');
+      tabSearch.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center gap-1.5';
+      tabPlanner.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5';
+    });
+
+    tabPlanner.addEventListener('click', () => {
+      viewSearch.classList.add('hidden');
+      viewPlanner.classList.remove('hidden');
+      tabPlanner.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center gap-1.5';
+      tabSearch.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5';
+    });
+
+    if (planTripBtn) {
+      planTripBtn.addEventListener('click', () => {
+        const originId = originSelect ? originSelect.value : '';
+        const destId = destSelect ? destSelect.value : '';
+
+        if (!originId || !destId || !resultBox) return;
+
+        if (originId === destId) {
+          resultBox.classList.remove('hidden');
+          resultBox.innerHTML = `
+            <div class="p-2.5 text-center text-amber-400 font-mono text-xs">
+              ⚠️ El origen y destino elegidos corresponden a la misma garita. Elige dos puntos diferentes.
+            </div>
+          `;
+          return;
+        }
+
+        const originStop = BUSRIO_DATA.stops.find(s => s.id === originId);
+        const destStop = BUSRIO_DATA.stops.find(s => s.id === destId);
+        if (!originStop || !destStop) return;
+
+        // Búsqueda de trayecto directo
+        const directLines = BUSRIO_DATA.lines.filter(l => 
+          originStop.lines.includes(l.id) && destStop.lines.includes(l.id)
+        );
+
+        if (directLines.length > 0) {
+          const best = directLines[0];
+          resultBox.classList.remove('hidden');
+          resultBox.innerHTML = `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between pb-1.5 border-b border-[var(--border-color)]">
+                <span class="text-emerald-400 font-bold flex items-center gap-1.5 uppercase text-[10px]">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>Trayecto Directo (Sin trasbordo)</span>
+                </span>
+                <span class="text-[10px] text-[var(--accent-transit)] font-bold">1 Boleto ($1.150)</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded font-bold text-slate-950 text-xs shrink-0" style="background-color: ${best.color};">${best.number}</span>
+                  <span class="text-[var(--text-primary)] font-medium truncate">${best.direction}</span>
+                </div>
+                <span class="text-xs text-[var(--text-muted)] shrink-0 font-bold">~15 min</span>
+              </div>
+              <div class="text-[11px] text-[var(--text-secondary)] font-sans">
+                Subir en <strong>${originStop.name}</strong> · Arribo en garita en <strong>${best.etaMinutes} min</strong>.
+              </div>
+              <button type="button" id="trip-focus-btn" class="w-full mt-1.5 py-2 rounded bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-transit)] text-xs text-[var(--accent-transit)] font-mono font-bold flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>Ver Línea en Centro de Control</span>
+              </button>
+            </div>
+          `;
+
+          const focusBtn = document.getElementById('trip-focus-btn');
+          if (focusBtn) {
+            focusBtn.addEventListener('click', () => {
+              focusLineOnMap(best);
+              smoothScrollTo('monitor');
+            });
+          }
+        } else {
+          // Búsqueda de trasbordo en hub común (Plaza Roca / Centro Trasbordo)
+          const originLines = BUSRIO_DATA.lines.filter(l => originStop.lines.includes(l.id));
+          const destLines = BUSRIO_DATA.lines.filter(l => destStop.lines.includes(l.id));
+
+          let connection = null;
+          for (const lineA of originLines) {
+            for (const lineB of destLines) {
+              const commonHub = BUSRIO_DATA.stops.find(s => s.lines.includes(lineA.id) && s.lines.includes(lineB.id));
+              if (commonHub) {
+                connection = { lineA, lineB, hub: commonHub };
+                break;
+              }
+            }
+            if (connection) break;
+          }
+
+          if (connection) {
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = `
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between pb-1.5 border-b border-[var(--border-color)]">
+                  <span class="text-[var(--accent-transit)] font-bold flex items-center gap-1.5 uppercase text-[10px]">
+                    <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                    <span>Combinación con Boleto de 60m</span>
+                  </span>
+                  <span class="text-[10px] text-emerald-400 font-bold">2do tramo: $0</span>
+                </div>
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+                    <span class="truncate">Tomar <strong>${connection.lineA.number}</strong> hasta ${connection.hub.name}</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[var(--accent-transit)] pl-6 text-[10px]">
+                    <i class="fa-solid fa-arrow-down"></i>
+                    <span>Trasbordo en garita (espera ~4 min)</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+                    <span class="truncate">Subir a <strong>${connection.lineB.number}</strong> directo hacia ${destStop.name}</span>
+                  </div>
+                </div>
+                <div class="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400">
+                  ✓ Ventana de 60 min activa. Total: <strong>$1.150</strong> (Ahorrás $1.150).
+                </div>
+                <button type="button" id="trip-focus-btn" class="w-full mt-1 py-2 rounded bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-transit)] text-xs text-[var(--accent-transit)] font-mono font-bold flex items-center justify-center gap-2 transition-all">
+                  <i class="fa-solid fa-map-location-dot"></i>
+                  <span>Trazar Conexión en Mapa</span>
+                </button>
+              </div>
+            `;
+
+            const focusBtn = document.getElementById('trip-focus-btn');
+            if (focusBtn) {
+              focusBtn.addEventListener('click', () => {
+                focusLineOnMap(connection.lineA);
+                smoothScrollTo('monitor');
+              });
+            }
+          } else {
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = `
+              <div class="p-2.5 text-center text-[var(--text-secondary)] font-mono text-xs">
+                No se halló trasbordo directo entre estas garitas en la red urbana principal.
+              </div>
+            `;
+          }
+        }
+      });
+    }
+  }
+
   function initSearch() {
     const monitorSearchInput = document.getElementById('monitor-search-input');
 
@@ -354,8 +810,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!gridContainer || !emptyContainer) return;
 
     const filteredLines = BUSRIO_DATA.lines.filter(line => {
-      const matchesStop = (state.selectedStop === 'all') ||
-        (BUSRIO_DATA.stops.find(s => s.id === state.selectedStop)?.lines.includes(line.id));
+      let matchesStop = false;
+      if (state.selectedStop === 'all') {
+        matchesStop = true;
+      } else if (state.selectedStop === 'favorites') {
+        matchesStop = state.favorites.includes(line.id);
+      } else {
+        matchesStop = BUSRIO_DATA.stops.find(s => s.id === state.selectedStop)?.lines.includes(line.id);
+      }
 
       const matchesQuery = !state.searchQuery ||
         line.number.toLowerCase().includes(state.searchQuery) ||
@@ -375,7 +837,20 @@ document.addEventListener('DOMContentLoaded', () => {
       gridContainer.classList.add('hidden');
       emptyContainer.classList.remove('hidden');
 
+      const emptyTitle = emptyContainer.querySelector('h3');
+      const emptyDesc = emptyContainer.querySelector('p');
       const resetBtn = document.getElementById('reset-filters-btn');
+
+      if (state.selectedStop === 'favorites') {
+        if (emptyTitle) emptyTitle.textContent = 'Sin líneas favoritas aún';
+        if (emptyDesc) emptyDesc.textContent = 'Haz clic en la estrella (⭐) de cualquier colectivo para fijarlo aquí y tener acceso inmediato.';
+        if (resetBtn) resetBtn.textContent = 'Ver Todas las Líneas';
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'Sin ramales para este filtro';
+        if (emptyDesc) emptyDesc.textContent = 'No hay colectivos asignados a esta combinación de búsqueda.';
+        if (resetBtn) resetBtn.textContent = 'Restablecer';
+      }
+
       if (resetBtn) {
         resetBtn.onclick = () => {
           state.selectedStop = 'all';
@@ -399,9 +874,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function toggleFavorite(lineId) {
+    const idx = state.favorites.indexOf(lineId);
+    const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+    const lineName = line ? line.number : lineId;
+
+    if (idx > -1) {
+      state.favorites.splice(idx, 1);
+      showToast(`${lineName} quitada de favoritos`, 'info');
+    } else {
+      state.favorites.push(lineId);
+      showToast(`${lineName} guardada en favoritos ⭐`, 'success');
+    }
+    localStorage.setItem('busrio_favs', JSON.stringify(state.favorites));
+    renderCards();
+  }
+
   function createLineCard(line) {
     const article = document.createElement('article');
     const isActive = state.activeLineId === line.id;
+    const isFav = state.favorites.includes(line.id);
 
     article.className = `line-card transit-card p-3 sm:p-3.5 transition-all cursor-pointer ${
       isActive
@@ -424,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     article.innerHTML = `
-      <!-- Fila 1: Línea Badge + Nombre + ETA Monospace -->
+      <!-- Fila 1: Línea Badge + Nombre + Favorito + ETA Monospace -->
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
@@ -438,9 +930,14 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] font-bold ${pulseClass} bg-[var(--bg-main)] text-[var(--accent-transit)] border border-[var(--border-color)] shrink-0">
-          <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"></span>
-          <span>${line.etaMinutes} MIN</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" class="btn-fav p-1 rounded hover:bg-[var(--bg-main)] ${isFav ? 'is-fav text-amber-400' : 'text-[var(--text-muted)] hover:text-amber-400'}" data-fav-line="${line.id}" title="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}">
+            <i class="${isFav ? 'fa-solid text-amber-400' : 'fa-regular'} fa-star text-xs"></i>
+          </button>
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] font-bold ${pulseClass} bg-[var(--bg-main)] text-[var(--accent-transit)] border border-[var(--border-color)]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"></span>
+            <span>${line.etaMinutes} MIN</span>
+          </div>
         </div>
       </div>
 
@@ -476,10 +973,22 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    // Clic en el botón de estrella de favoritos
+    const favBtn = article.querySelector('.btn-fav');
+    if (favBtn) {
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFavorite(line.id);
+      });
+    }
+
     // Clic en toda la tarjeta selecciona la línea en el mapa
     article.addEventListener('click', (e) => {
       if (e.target.closest('.view-route-btn')) {
         openLineModal(line);
+        return;
+      }
+      if (e.target.closest('.btn-fav')) {
         return;
       }
       focusLineOnMap(line, true);
@@ -602,6 +1111,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Inicializar Telemetría de Colectivos en Movimiento
+    initBusMovementTelemetry();
+
     // Botón de Recentrado
     const resetViewBtn = document.getElementById('map-reset-btn');
     if (resetViewBtn) {
@@ -643,6 +1155,92 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250);
   }
 
+  /* ==========================================================================
+     TELEMETRÍA SIMULADA: COLECTIVOS ANIMADOS EN MOVIMIENTO (LEAFLET)
+     ========================================================================== */
+  function initBusMovementTelemetry() {
+    if (!state.map) return;
+
+    // Crear marcadores animados para cada línea
+    BUSRIO_DATA.lines.forEach(line => {
+      if (!line.routeCoords || line.routeCoords.length < 2) return;
+
+      const startIndex = typeof line.currentCoordIndex === 'number' ? line.currentCoordIndex : 0;
+      const startCoord = line.routeCoords[startIndex % line.routeCoords.length];
+
+      const busIcon = L.divIcon({
+        className: 'custom-moving-bus-marker',
+        html: `
+          <div class="moving-bus-container" id="moving-bus-${line.id}">
+            <div class="moving-bus-ping" style="background-color: ${line.color};"></div>
+            <div class="moving-bus-badge" style="background-color: ${line.color};">
+              <i class="fa-solid fa-bus text-[9px]"></i>
+              <span>${line.number.replace('Línea ', 'L')}</span>
+            </div>
+          </div>
+        `,
+        iconSize: [44, 24],
+        iconAnchor: [22, 12]
+      });
+
+      const marker = L.marker(startCoord, { icon: busIcon }).addTo(state.map);
+
+      marker.bindPopup(`
+        <div class="p-1 font-mono text-xs text-[var(--text-primary)] space-y-1 min-w-[160px]">
+          <div class="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-1">
+            <strong style="color: ${line.color};">${line.number} · ${line.busUnit || 'Coche Activo'}</strong>
+            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[9px]">EN VIVO</span>
+          </div>
+          <div class="text-[11px] text-[var(--text-secondary)] space-y-0.5 font-sans">
+            <div>Velocidad: <strong class="text-[var(--text-primary)] font-mono">${line.speed || 32} km/h</strong></div>
+            <div>Ocupación: <strong class="text-[var(--text-primary)]">${line.capacity}</strong></div>
+            <div>Próxima garita: <strong class="text-[var(--text-primary)]">${line.stopName}</strong></div>
+          </div>
+          <div class="pt-1 text-[10px] text-[var(--accent-transit)] font-bold">
+            Arribo estimado: en ${line.etaMinutes} min
+          </div>
+        </div>
+      `);
+
+      marker.on('click', () => {
+        focusLineOnMap(line, false);
+      });
+
+      state.busMarkers[line.id] = {
+        marker,
+        coordIndex: startIndex,
+        coords: line.routeCoords,
+        line
+      };
+    });
+
+    // Bucle de telemetría: cada 3.2 segundos avanzan hacia el siguiente nodo de su ruta
+    if (state.busTelemetryInterval) {
+      clearInterval(state.busTelemetryInterval);
+    }
+
+    state.busTelemetryInterval = setInterval(() => {
+      // Si está en modo ahorro de datos extremo, se pausa el movimiento continuo
+      if (state.isLowData) return;
+
+      Object.keys(state.busMarkers).forEach(lineId => {
+        const busObj = state.busMarkers[lineId];
+        if (!busObj || !busObj.coords || busObj.coords.length === 0) return;
+
+        busObj.coordIndex = (busObj.coordIndex + 1) % busObj.coords.length;
+        const nextCoord = busObj.coords[busObj.coordIndex];
+
+        busObj.marker.setLatLng(nextCoord);
+
+        // Jitter de velocidad realista
+        if (busObj.line.speed) {
+          const delta = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 2);
+          busObj.line.speed = Math.max(20, Math.min(40, busObj.line.speed + delta));
+        }
+      });
+    }, 3200);
+  }
+
   function focusLineOnMap(line, autoSwitchMobile = true) {
     if (!state.map) return;
 
@@ -669,14 +1267,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Encuadrar el mapa a la traza con actualización de dimensiones
-    if (state.routeLayers[line.id]) {
-      state.map.invalidateSize();
-      state.map.fitBounds(state.routeLayers[line.id].getBounds(), { padding: [40, 40] });
-    }
-
     // Actualizar banner flotante en el mapa
     const banner = document.getElementById('active-route-banner');
+    const defaultBanner = document.getElementById('default-route-banner');
     const badge = document.getElementById('active-route-badge');
     const text = document.getElementById('active-route-text');
 
@@ -684,11 +1277,40 @@ document.addEventListener('DOMContentLoaded', () => {
       badge.textContent = line.number;
       text.textContent = line.name;
       banner.classList.remove('hidden');
+      banner.classList.add('flex');
+    }
+    if (defaultBanner) {
+      defaultBanner.classList.add('hidden');
     }
 
-    // En celular, si aplica, cambiar al mapa
-    if (autoSwitchMobile && window.innerWidth < 1024) {
+    const isMobile = window.innerWidth < 1024;
+
+    // En celular, si aplica autoSwitchMobile:
+    // PASO CRÍTICO: Primero hacer visible el mapa ANTES de calcular bounds
+    if (autoSwitchMobile && isMobile) {
       switchMobileView('map');
+      smoothScrollTo('monitor');
+    }
+
+    // Encuadrar el mapa a la traza con actualización de dimensiones garantizada
+    if (state.routeLayers[line.id]) {
+      const routeLayer = state.routeLayers[line.id];
+      const bounds = routeLayer.getBounds();
+
+      if (bounds && bounds.isValid()) {
+        if (isMobile) {
+          // En móvil, dar 60ms para que el navegador aplique display:block antes de calcular píxeles
+          setTimeout(() => {
+            if (state.map) {
+              state.map.invalidateSize();
+              state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+            }
+          }, 60);
+        } else {
+          state.map.invalidateSize();
+          state.map.fitBounds(bounds, { padding: [40, 40] });
+        }
+      }
     }
 
     showToast(`Trazando recorrido: ${line.number}`, 'info');
@@ -712,7 +1334,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const banner = document.getElementById('active-route-banner');
-    if (banner) banner.classList.add('hidden');
+    const defaultBanner = document.getElementById('default-route-banner');
+    if (banner) {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+    }
+    if (defaultBanner) {
+      defaultBanner.classList.remove('hidden');
+    }
   }
 
   /* ==========================================================================
@@ -930,6 +1559,42 @@ document.addEventListener('DOMContentLoaded', () => {
       field.classList.remove('border-red-500');
       field.classList.add('border-[var(--border-color)]');
     });
+  }
+
+  /* ==========================================================================
+     SIMULADOR INTERACTIVO DE AHORRO TARIFARIO (BOLETO COMBINADO RÍO CUARTO)
+     ========================================================================== */
+  function initFareSavingsCalculator() {
+    const slider = document.getElementById('calc-trips-slider');
+    const daysSelect = document.getElementById('calc-days-select');
+    const tripsValEl = document.getElementById('calc-trips-val');
+    const noTransferEl = document.getElementById('calc-cost-no-transfer');
+    const withTransferEl = document.getElementById('calc-cost-with-transfer');
+    const savedEl = document.getElementById('calc-total-saved');
+
+    if (!slider || !daysSelect || !tripsValEl || !noTransferEl || !withTransferEl || !savedEl) return;
+
+    function recalculate() {
+      const tripsPerDay = parseInt(slider.value, 10);
+      const daysPerMonth = parseInt(daysSelect.value, 10);
+      const singleFare = (BUSRIO_DATA.fare && BUSRIO_DATA.fare.singleTicket) ? BUSRIO_DATA.fare.singleTicket : 1150;
+
+      tripsValEl.textContent = `${tripsPerDay} ${tripsPerDay === 1 ? 'viaje' : 'viajes'}`;
+
+      // Sin combinación: Cada viaje requiere pagar 2 boletos completos
+      const totalNoTransfer = tripsPerDay * 2 * singleFare * daysPerMonth;
+      // Con boleto combinado: 1 boleto por viaje (2do tramo a $0 bonificado dentro de 60m)
+      const totalWithTransfer = tripsPerDay * 1 * singleFare * daysPerMonth;
+      const totalSaved = totalNoTransfer - totalWithTransfer;
+
+      noTransferEl.textContent = `$${totalNoTransfer.toLocaleString('es-AR')}`;
+      withTransferEl.textContent = `$${totalWithTransfer.toLocaleString('es-AR')}`;
+      savedEl.textContent = `+$${totalSaved.toLocaleString('es-AR')}`;
+    }
+
+    slider.addEventListener('input', recalculate);
+    daysSelect.addEventListener('change', recalculate);
+    recalculate();
   }
 
   /* ==========================================================================

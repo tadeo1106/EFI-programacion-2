@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="busrio-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="amber-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle Background -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#busrio-grad)" stroke="#334155" stroke-width="8"/>
+  
+  <!-- GPS Wave pulse behind bus -->
+  <path d="M 176 130 A 160 160 0 0 1 336 130" fill="none" stroke="#F59E0B" stroke-width="14" stroke-linecap="round" stroke-opacity="0.4"/>
+  <path d="M 206 160 A 110 110 0 0 1 306 160" fill="none" stroke="#F59E0B" stroke-width="14" stroke-linecap="round" stroke-opacity="0.8"/>
+  
+  <!-- Bus Body -->
+  <rect x="136" y="190" width="240" height="230" rx="36" fill="url(#amber-grad)"/>
+  
+  <!-- Bus Windshield -->
+  <rect x="160" y="214" width="192" height="80" rx="16" fill="#0F172A"/>
+  
+  <!-- Windshield Reflection -->
+  <path d="M 176 226 L 220 226 L 190 280 L 166 280 Z" fill="#38BDF8" fill-opacity="0.3"/>
+  <rect x="251" y="222" width="10" height="64" rx="4" fill="#334155"/>
+  
+  <!-- Headlights -->
+  <circle cx="178" cy="336" r="16" fill="#FFFFFF"/>
+  <circle cx="334" cy="336" r="16" fill="#FFFFFF"/>
+  <circle cx="178" cy="336" r="10" fill="#FEF08A"/>
+  <circle cx="334" cy="336" r="10" fill="#FEF08A"/>
+  
+  <!-- Grille -->
+  <rect x="220" y="326" width="72" height="20" rx="6" fill="#0F172A"/>
+  <line x1="230" y1="336" x2="282" y2="336" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Wheels -->
+  <rect x="156" y="416" width="36" height="24" rx="8" fill="#020617"/>
+  <rect x="320" y="416" width="36" height="24" rx="8" fill="#020617"/>
+</svg>

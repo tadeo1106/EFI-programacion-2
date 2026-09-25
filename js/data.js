@@ -85,6 +85,9 @@ const BUSRIO_DATA = {
       accessible: true, // Rampa para sillas de ruedas
       capacity: "Media (Asientos disponibles)",
       description: "Conecta el Centro Cívico y Plaza Roca de manera directa con la Universidad Nacional de Río Cuarto.",
+      busUnit: "Coche #102",
+      speed: 34,
+      currentCoordIndex: 2,
       stopsList: [
         "Barrio Alberdi (Plaza San Martín)",
         "Centro de Trasbordo Constitución",
@@ -122,6 +125,9 @@ const BUSRIO_DATA = {
       accessible: true,
       capacity: "Moderada (80% de ocupación)",
       description: "Servicio esencial con destino al Hospital Central y barrios residenciales de Banda Norte.",
+      busUnit: "Coche #108",
+      speed: 30,
+      currentCoordIndex: 0,
       stopsList: [
         "Hospital San Antonio de Padua",
         "Puente Colgante Bicentenario",
@@ -159,6 +165,9 @@ const BUSRIO_DATA = {
       accessible: false,
       capacity: "Alta (Unidad colmada)",
       description: "Concurrencia alta en horario pico. Se recomienda utilizar Línea 2 como vía alternativa de trasbordo.",
+      busUnit: "Coche #114",
+      speed: 22,
+      currentCoordIndex: 1,
       stopsList: [
         "Plaza Roca",
         "Palacio Municipal",
@@ -194,6 +203,9 @@ const BUSRIO_DATA = {
       accessible: true,
       capacity: "Baja (Coche con asientos)",
       description: "Servicio rápido y directo entre el nodo de trasbordo céntrico y los sectores residenciales de Alberdi.",
+      busUnit: "Coche #122",
+      speed: 36,
+      currentCoordIndex: 0,
       stopsList: [
         "Centro de Trasbordo Constitución",
         "Plaza Roca",
@@ -227,6 +239,9 @@ const BUSRIO_DATA = {
       accessible: true,
       capacity: "Media",
       description: "⚠️ ATENCIÓN: Desvío temporal por repavimentación en Puente Carretero. Cruce habilitado por Puente Colgante.",
+      busUnit: "Coche #135",
+      speed: 26,
+      currentCoordIndex: 3,
       stopsList: [
         "Hospital San Antonio de Padua",
         "Puente Colgante Bicentenario (Desvío)",
@@ -262,6 +277,9 @@ const BUSRIO_DATA = {
       accessible: true,
       capacity: "Baja",
       description: "Recorrido troncal sur conectando Plaza Roca con los barrios Bimaco, Hipódromo y Club de Golf.",
+      busUnit: "Coche #141",
+      speed: 31,
+      currentCoordIndex: 1,
       stopsList: [
         "Plaza Roca",
         "Bv. Roca (Alberdi)",
@@ -278,6 +296,14 @@ const BUSRIO_DATA = {
       ]
     }
   ],
+
+  // Datos Tarifarios Oficiales (Río Cuarto) para Calculadora de Ahorro
+  fare: {
+    singleTicket: 1150, // Tarifa plana urbana vigente en Río Cuarto
+    combinedTicket: 1150, // Con boleto combinado el 2do pasaje es gratis ($0)
+    transferWindowMinutes: 60,
+    averageMonthlyWorkDays: 22
+  },
 
   // Alertas Comunitarias Ciudadanas
   alerts: [
