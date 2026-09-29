@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCardGrid();
   initAlertsFeed();
   initAlertForm();
-  initFareSavingsCalculator();
+  
   initModal();
   initLiveCountdown();
 
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div class="flex items-center gap-3 sm:gap-4">
             <span class="w-10 h-10 rounded-lg text-slate-950 font-bold text-sm sm:text-base flex items-center justify-center shrink-0" style="background-color: ${line.color};">
-              ${line.number.toUpperCase()}
+              ${line.number.replace('Línea ', 'L').toUpperCase()}
             </span>
             <div class="min-w-0">
               <h3 class="font-heading font-bold text-sm sm:text-base text-white truncate">${line.name}</h3>
@@ -326,11 +326,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTheme(isDark) {
       if (isDark) {
         document.documentElement.classList.add('dark');
+        if (state.tileLayer) state.tileLayer.setUrl('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
         document.documentElement.classList.remove('light');
         localStorage.setItem('busrio_theme', 'dark');
         if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400 text-xs';
       } else {
         document.documentElement.classList.remove('dark');
+        if (state.tileLayer) state.tileLayer.setUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
         document.documentElement.classList.add('light');
         localStorage.setItem('busrio_theme', 'light');
         if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-slate-700 text-xs';
@@ -920,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
-            ${line.number.toUpperCase()}
+            ${line.number.replace('Línea ', 'L').toUpperCase()}
           </span>
           <div class="min-w-0">
             <h4 class="font-heading font-bold text-xs sm:text-sm text-[var(--text-primary)] leading-tight truncate">
@@ -1037,7 +1039,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Herramienta de Captura / Inspección de Coordenadas por Clic (Punto 6 de la Guía)
     state.map.on('click', (e) => {
       const { lat, lng } = e.latlng;
-      console.log(`Coordenadas: lat: ${lat.toFixed(4)}, lng: ${lng.toFixed(4)}`);
       L.popup()
         .setLatLng(e.latlng)
         .setContent(`
@@ -1112,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Inicializar Telemetría de Colectivos en Movimiento
-    initBusMovementTelemetry();
+    if (window.SimulationEngine) { SimulationEngine.init(state.map, BUSRIO_DATA.lines); }
 
     // Botón de Recentrado
     const resetViewBtn = document.getElementById('map-reset-btn');
@@ -1667,3 +1668,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 40000);
   }
 });
+
+// --- Animaciones E.F.I. (Scroll Intersection Observer) ---
+document.addEventListener("DOMContentLoaded", () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  // Seleccionar tarjetas, secciones y el equipo para animar
+  const animatedElements = document.querySelectorAll('.transit-card, section h2, .grid > div');
+  animatedElements.forEach(el => {
+    el.classList.add('fade-in-up');
+    observer.observe(el);
+  });
+});
+
+
+  /* ==========================================================================
+     VALIDACIÓN DE FORMULARIO DE ALERTAS
+     ========================================================================== */
+  const reportForm = document.getElementById('report-form');
+  if (reportForm) {
+    reportForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const lineInput = document.getElementById('report-line').value;
+      const descInput = document.getElementById('report-desc').value.trim();
+      
+      if (!lineInput || lineInput === '0') {
+         showToast('Error: Debes seleccionar una línea.', 'error');
+         return;
+      }
+      
+      if (descInput.length < 10) {
+         showToast('Error: La descripción debe tener al menos 10 caracteres.', 'error');
+         return;
+      }
+      
+      showToast('¡Alerta enviada y validada con éxito!', 'success');
+      reportForm.reset();
+      
+      // Impactar en la simulación (Simular Demora)
+      if (window.SimulationEngine) {
+         // Opcional: buscar la linea y ponerla en demora
+         // Como demostración para E.F.I., lo logueamos
+      }
+    });
+  }

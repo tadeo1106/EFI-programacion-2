@@ -153,3 +153,37 @@ Este documento registra cronológicamente las decisiones fundamentales de arquit
   6. **Calculadora Interactiva de Ahorro**: Simulador financiero en la sección de trasbordos que calcula en tiempo real el dinero mensual (\$ ARS) que ahorra el usuario al utilizar el régimen de combinación de Río Cuarto.
   7. **Modo Low-Data**: Interruptor de ahorro de datos para conexiones 3G débiles que atenúa los azulejos de OpenStreetMap y optimiza el consumo de batería y CPU móvil.
 * **Consecuencias**: Solución integral, atractiva y funcional que cumple y supera ampliamente los requisitos técnicos y de producto de la consigna.
+
+---
+
+## [ADR-005] Motor de Simulación Física vs Salto de Nodos (v2.2)
+
+**Fecha:** 29 de Septiembre 2026  
+**Contexto:** Inicialmente (`v2.1`), la telemetría de los colectivos iteraba mediante un `setInterval` saltando a las coordenadas base de las garitas. Esto provocaba que los marcadores en Leaflet volaran en línea recta, atravesando edificios y el río.  
+**Decisión:** 
+1. Se migraron los datos a geometrías viales de alta densidad obtenidas vía OSRM (cientos de puntos por línea).
+2. Se extrajo la lógica a un nuevo módulo `js/simulation.js`.
+3. Se implementó un bucle con `requestAnimationFrame` que mueve el colectivo usando la distancia acumulada sobre la polilínea (fórmula de Haversine) a una velocidad en km/h preestablecida.
+**Consecuencias:**
+- *Positivo:* Movimiento fluido, los colectivos respetan curvas, rotondas y los puentes reales.
+- *Positivo:* Permite calcular la orientación (bearing) y rotar el ícono para que apunte en la dirección de viaje.
+- *Negativo:* Mayor procesamiento en el cliente para interpolar distancias, aunque despreciable para las capacidades actuales.
+
+---
+
+## [ADR-006] Estrategia Service Worker: Network-First (v2.2)
+
+**Fecha:** 29 de Septiembre 2026  
+**Contexto:** Para la E.F.I., se solicitó implementar una PWA estricta. El SW anterior utilizaba variantes mixtas que en ocasiones servían HTML desactualizado sin verificar la red.  
+**Decisión:** Se reescribió `sw.js` utilizando una estrategia pura `Network-First` con fallback local. Si la red responde `200`, actualiza el caché silenciosamente. Si la red falla, sirve el caché. Se ignoran los dominios externos (como los *tiles* de Leaflet) para no saturar el almacenamiento offline del dispositivo.  
+**Consecuencias:** Asegura que los evaluadores siempre vean la última versión del código (CSS/JS) si hay conexión, mientras mantiene tolerancia total a caídas de red simuladas en la defensa.
+
+---
+
+## [ADR-007] Eliminación de "Calculadora de Ahorro" y "Selector de Franjas" (v2.2)
+
+**Fecha:** 29 de Septiembre 2026  
+**Contexto:** Durante las iteraciones de la E.F.I. se añadieron controles de tiempo (Pico/Valle) y calculadoras tarifarias. El usuario solicitó removerlos para mantener la demanda "normal" y el simulador enfocado estrictamente en la telemetría.  
+**Decisión:** Se borró todo el HTML, estilos y lógica JS relacionada con la "Calculadora de Ahorro" y el dropdown de "Franja Horaria".  
+**Consecuencias:** Código más limpio (`index.html` y `app.js` reducidos) y una interfaz de usuario menos saturada, enfocando el peso visual de la app en la telemetría del mapa.
+

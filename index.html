@@ -29,11 +29,11 @@
       })();
     </script>
 
-    <!-- Google Fonts: Space Grotesk (Títulos Utilitarios) + Inter (Cuerpo) + JetBrains Mono (Datos/Horarios) -->
+    <!-- Google Fonts: Outfit (Títulos) + Plus Jakarta Sans (Cuerpo) + Fira Code (Datos) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
 
@@ -57,9 +57,9 @@
         theme: {
           extend: {
             fontFamily: {
-              heading: ['"Space Grotesk"', "sans-serif"],
-              sans: ["Inter", "sans-serif"],
-              mono: ['"JetBrains Mono"', "monospace"],
+              heading: ['"Outfit"', "sans-serif"],
+              sans: ['"Plus Jakarta Sans"', "sans-serif"],
+              mono: ['"Fira Code"', "monospace"],
             },
             colors: {
               transit: {
@@ -406,6 +406,35 @@
       body.low-data-mode .transit-grid-bg {
         background-image: none !important;
       }
+    
+      /* Animaciones E.F.I. */
+      .fade-in-up {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .fade-in-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      @media (prefers-reduced-motion: reduce) {
+        .fade-in-up {
+          transition: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .moving-bus-container, .moving-bus-badge {
+          transition: none !important;
+        }
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
     </style>
   </head>
 
@@ -1258,7 +1287,23 @@
                   <div
                     id="map"
                     class="w-full h-full z-10"
-                  ></div>
+                  >
+
+          <!-- Controles de Simulación (Defensa Oral) -->
+          <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
+            <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 shadow-lg flex gap-2 pointer-events-auto">
+              <div class="flex bg-[var(--bg-body)] rounded border border-[var(--border-color)] overflow-hidden">
+                <button onclick="SimulationEngine.setTimeScale(1)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900 border-r border-[var(--border-color)]">x1</button>
+                <button onclick="SimulationEngine.setTimeScale(5)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900 border-r border-[var(--border-color)]">x5</button>
+                <button onclick="SimulationEngine.setTimeScale(10)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900">x10</button>
+              </div>
+            </div>
+            <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 shadow-lg flex items-center justify-between text-[10px] pointer-events-auto">
+              <span class="text-[var(--text-secondary)]"><i class="fa-solid fa-satellite-dish mr-1 text-emerald-500"></i> <span id="telemetry-status">12 ms</span></span>
+              <span class="text-[var(--text-muted)] font-mono" id="active-units-count">Activos: 6</span>
+            </div>
+          </div>
+</div>
                 </div>
 
                 <!-- Pie de Tarjeta: Leyenda Técnica de Ramales -->
@@ -1441,126 +1486,7 @@
             </div>
           </div>
 
-          <!-- Mini-Calculadora Interactiva de Ahorro Mensual -->
-          <div class="mt-10 pt-8 border-t border-[var(--border-color)]">
-            <div class="max-w-3xl mx-auto transit-card p-6 space-y-5">
-              <div
-                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[var(--border-color)]"
-              >
-                <div>
-                  <span
-                    class="font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--accent-transit)] flex items-center gap-1.5"
-                  >
-                    <i class="fa-solid fa-calculator"></i>
-                    <span>Simulador Tarifario de Bolsillo</span>
-                  </span>
-                  <h3
-                    class="font-heading font-bold text-lg sm:text-xl text-[var(--text-primary)]"
-                  >
-                    Calculadora de Ahorro Mensual con Trasbordo
-                  </h3>
-                </div>
-                <div
-                  class="font-mono text-xs px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-secondary)] shrink-0"
-                >
-                  Boleto Urbano: <strong class="text-[var(--text-primary)]">$1.150</strong>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <!-- Controles: Slider de viajes y selector de días -->
-                <div class="space-y-4">
-                  <div>
-                    <div class="flex justify-between text-xs font-mono mb-1.5">
-                      <label
-                        for="calc-trips-slider"
-                        class="text-[var(--text-secondary)] uppercase"
-                        >Combinaciones por día:</label
-                      >
-                      <span
-                        id="calc-trips-val"
-                        class="font-bold text-[var(--accent-transit)] text-sm"
-                        >2 viajes</span
-                      >
-                    </div>
-                    <input
-                      type="range"
-                      id="calc-trips-slider"
-                      min="1"
-                      max="4"
-                      value="2"
-                      step="1"
-                      class="w-full accent-[var(--accent-transit)] cursor-pointer"
-                    />
-                    <div
-                      class="flex justify-between text-[10px] font-mono text-[var(--text-muted)] mt-1"
-                    >
-                      <span>1 (Solo ida)</span>
-                      <span>2 (Ida y vuelta)</span>
-                      <span>3 (Estudio/Trabajo)</span>
-                      <span>4 (Intensivo)</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      for="calc-days-select"
-                      class="block text-xs font-mono uppercase text-[var(--text-secondary)] mb-1.5"
-                      >Frecuencia de viaje al mes:</label
-                    >
-                    <select
-                      id="calc-days-select"
-                      class="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-transit)]"
-                    >
-                      <option value="20">20 días hábiles (Lunes a Viernes estándar)</option>
-                      <option value="24" selected>
-                        24 días (Comercio / Estudiante con sábados)
-                      </option>
-                      <option value="30">30 días continuos (Uso diario intensivo)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Resumen de Costos y Ahorro -->
-                <div
-                  class="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] space-y-3 font-mono"
-                >
-                  <div
-                    class="flex justify-between items-center text-xs pb-2 border-b border-[var(--border-color)]"
-                  >
-                    <span class="text-[var(--text-muted)]">Sin combinación (2 boletos):</span>
-                    <span id="calc-cost-no-transfer" class="line-through text-rose-400 font-bold"
-                      >$110.400</span
-                    >
-                  </div>
-                  <div
-                    class="flex justify-between items-center text-xs pb-2 border-b border-[var(--border-color)]"
-                  >
-                    <span class="text-[var(--text-muted)]">Con BusRío (2do tramo $0):</span>
-                    <span id="calc-cost-with-transfer" class="text-[var(--text-primary)] font-bold"
-                      >$55.200</span
-                    >
-                  </div>
-                  <div
-                    class="pt-1 text-center bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3"
-                  >
-                    <span
-                      class="text-[10px] uppercase text-emerald-500 font-bold block mb-0.5 tracking-wider"
-                      >Dinero que ahorras por mes:</span
-                    >
-                    <span
-                      id="calc-total-saved"
-                      class="text-2xl sm:text-3xl font-extrabold text-emerald-400 block"
-                      >+$55.200</span
-                    >
-                    <span
-                      class="block text-[10px] text-emerald-600 dark:text-emerald-400/80 mt-1"
-                      >¡50% de reducción en el costo de transporte!</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
+          
           </div>
         </div>
       </section>
@@ -1914,11 +1840,7 @@
             >
               <div>
                 <div class="flex items-center gap-3 mb-2">
-                  <div
-                    class="w-10 h-10 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold flex items-center justify-center text-sm"
-                  >
-                    LM
-                  </div>
+                  <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Lucas Molina" class="w-12 h-12 rounded-full object-cover border-2 border-[var(--border-color)]">
                   <div>
                     <h3
                       class="font-heading font-bold text-sm text-[var(--text-primary)]"
@@ -1949,11 +1871,7 @@
             >
               <div>
                 <div class="flex items-center gap-3 mb-2">
-                  <div
-                    class="w-10 h-10 rounded-lg bg-[var(--border-color)] text-[var(--text-primary)] font-mono font-bold flex items-center justify-center text-sm"
-                  >
-                    TA
-                  </div>
+                  <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="Tadeo" class="w-12 h-12 rounded-full object-cover border-2 border-[var(--border-color)]">
                   <div>
                     <h3
                       class="font-heading font-bold text-sm text-[var(--text-primary)]"
@@ -2096,7 +2014,14 @@
                   >contacto@busrio.com.ar</a
                 >
               </li>
-            </ul>
+            
+              <li class="pt-2"><a href="https://forms.gle/exampLef0rmU1" target="_blank" class="text-emerald-400 hover:underline"><i class="fa-solid fa-clipboard-list mr-1"></i> Formulario de Feedback</a></li>
+              <li class="pt-2 flex gap-3 text-lg">
+                <a href="https://facebook.com/busrio" target="_blank" class="hover:text-blue-500 transition-colors"><i class="fa-brands fa-facebook"></i></a>
+                <a href="https://instagram.com/busrio" target="_blank" class="hover:text-pink-500 transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                <a href="https://youtube.com/busrio" target="_blank" class="hover:text-red-500 transition-colors"><i class="fa-brands fa-youtube"></i></a>
+              </li>
+</ul>
           </div>
         </div>
 
@@ -2360,6 +2285,7 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/data.js"></script>
+    <script src="js/simulation.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

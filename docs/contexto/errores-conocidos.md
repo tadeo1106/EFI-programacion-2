@@ -24,3 +24,18 @@ Este documento recopila las trampas comunes de maquetado frontend, problemas rec
 | **14** | **Mapa Leaflet inoperable por SW no filtrado, barra colisionada y Escape bloqueando Tótem** | 1) `sw.js` interceptaba sin filtrar peticiones externas (`tile.openstreetmap.org`, CDN), devolviendo `undefined` y rompiendo la cartografía. 2) Elementos flotantes colisionaban sobre zoom y atribución de Leaflet. 3) En PC, pulsar Escape salía de fullscreen nativo sin disparar `keydown` a la web, dejando el modal de tótem bloqueado. | 1) Filtrar en `sw.js` para cachear únicamente peticiones de origen propio (`self.location.origin`). 2) Reestructurar la tarjeta del mapa en flex column con cabecera utilitaria dedicada (sin `absolute`), visor cartográfico central y pie de leyenda inferior. 3) Escuchar los eventos nativos `fullscreenchange` para ejecutar `closeKiosk()` automáticamente y cerrar menús móviles residuales al abrir. |
 
 
+
+---
+
+## 5. [RESUELTO] Colectivos "volando" en línea recta sobre el mapa
+* **Síntoma:** Al observar el mapa interactivo, los marcadores de los colectivos avanzaban atravesando manzanas, edificios y el medio del río en línea recta, ignorando el trazado vial.
+* **Causa Raíz (RCA):** Los arreglos `routeCoords` en `data.js` contenían únicamente 5 o 6 coordenadas (waypoints de las garitas). La telemetría iteraba saltando directamente entre ellos sin posiciones intermedias.
+* **Solución Aplicada (v2.2):** Se reemplazaron las coordenadas esporádicas por **geometría vial densa** (cientos de puntos por línea) pre-procesados con OSRM. Se creó `js/simulation.js` para interpolar la posición usando la distancia acumulada, obligando a los colectivos a seguir fielmente la calle y doblar en las esquinas.
+
+---
+
+## 6. [RESUELTO] Iconos apretados en el Modo Tótem (Sala de Espera)
+* **Síntoma:** En la sala de espera, los cuadros de color de las líneas mostraban los textos aplastados e ilegibles (ej. "LÍNEA 14" comprimido en 40x40px).
+* **Causa Raíz (RCA):** La variable se renderizaba como `${line.number.toUpperCase()}` en lugar de usar un formato abreviado compatible con íconos cuadrados.
+* **Solución Aplicada (v2.2):** Se reemplazó el string utilizando `.replace('Línea ', 'L')`, mostrando "L14" o "L1" de forma centrada y legible.
+

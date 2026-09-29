@@ -5,10 +5,13 @@ El desarrollo del proyecto **BusRío** se estructura como una Single Page Applic
 
 - **Estructura Base**: HTML5 semántico moderno con soporte de metadatos de accesibilidad (ARIA) y viewport responsive.
 - **Framework de Estilos**: **TailwindCSS (v3 vía CDN)** con configuración extendida para soporte nativo de Modo Oscuro (`dark:`), paleta corporativa y tipografía.
-- **Tipografía**: Google Fonts CDN (`Poppins` para títulos, marcas y números de línea; `Inter` para cuerpos de texto y tablas de frecuencias).
-- **Lógica e Interactividad**: Vanilla JavaScript moderno (ES6+), organizado de forma modular, libre de dependencias pesadas.
+- **Tipografía**: Google Fonts CDN (`Outfit` para títulos, `Plus Jakarta Sans` para cuerpo de texto y UI, `Fira Code` para números y telemetría).
+- **Lógica e Interactividad**: Vanilla JavaScript (ES6+), modularizado en `data.js` (estado), `app.js` (UI) y `simulation.js` (Motor Físico y Telemetría).
 - **Mapeo y Georreferenciación**: **Leaflet.js + OpenStreetMap (OSM)**, librería de mapas liviana (< 40 KB) sin requerimiento de API Keys comerciales ni costos por renderizado.
 - **Persistencia de Preferencias**: API `localStorage` del navegador para almacenar el estado del tema (Claro / Oscuro) y paradas favoritas.
+
+
+- **Progressive Web App (PWA)**: Implementación de un Service Worker (`sw.js`) con estrategia estricta `Network-First`. Garantiza actualizaciones inmediatas cuando hay conexión (200 OK) y tolerancia a fallos sirviendo recursos desde el caché local al estar offline.
 
 ---
 
@@ -70,9 +73,20 @@ graph TD
 
 ## 3. Modelo de Datos Mock (Frontend Data Store)
 Para dar cumplimiento a la consigna sin requerir servidores externos, los datos se estructuran en objetos JSON dentro de JavaScript:
-- `linesData`: Colección de líneas urbanas de Río Cuarto (Línea 1, 2, 5, 8, 11, 14), con color de línea, cabeceras, paradas y coordenadas de trazado.
+- `linesData`: Colección de líneas urbanas de Río Cuarto (Línea 1, 2, 5, 8, 11, 14), con color de línea, cabeceras, paradas y coordenadas de trazado de alta densidad (obtenidas previamente de OSRM para garantizar simulación vial real sin consumo de red).
 - `stopsData`: Lista de paradas críticas georreferenciadas con líneas que confluyen en ellas.
 - `alertsData`: Registro inicial de alertas ciudadanas activas en la ciudad.
+
+---
+
+
+## 3.5. Motor de Simulación Física (`js/simulation.js`)
+La aplicación no utiliza telemetría de GPS real, sino un motor de simulación de físicas viales:
+- Calcula distancias mediante la **Fórmula de Haversine**.
+- Desplaza los marcadores (`requestAnimationFrame`) basándose en una velocidad asignada (km/h) y el delta de tiempo.
+- Calcula el ángulo de rumbo (*bearing*) para rotar direccionalmente los íconos de las unidades por CSS.
+- **Validación Anti-Agua:** Posee un polígono geolocalizado del río y detecta (mediante cruce de segmentos) si un bus cruza el agua por fuera del radio de los puentes válidos.
+
 
 ---
 
