@@ -80,8 +80,9 @@
       :root {
         /* Modo Oscuro (Predeterminado) */
         --bg-main: #0f111a;
-        --bg-card: #1e293b;
-        --bg-card-subtle: #151d2a;
+        --bg-card: rgba(30, 41, 59, 0.90);
+        --bg-card-subtle: rgba(21, 29, 42, 0.88);
+        --bg-overlay: rgba(15, 17, 26, 0.85);
         --border-color: #334155;
         --border-hover: #475569;
         --text-primary: #f8fafc;
@@ -99,8 +100,9 @@
       html.light {
         /* Modo Claro */
         --bg-main: #faf9f6;
-        --bg-card: #ffffff;
-        --bg-card-subtle: #f1f5f9;
+        --bg-card: rgba(255, 255, 255, 0.92);
+        --bg-card-subtle: rgba(241, 245, 249, 0.88);
+        --bg-overlay: rgba(250, 249, 246, 0.86);
         --border-color: #e2e8f0;
         --border-hover: #cbd5e1;
         --text-primary: #0f172a;
@@ -117,6 +119,13 @@
 
       body {
         background-color: var(--bg-main);
+        background-image:
+          linear-gradient(var(--bg-overlay), var(--bg-overlay)),
+          url('Pegado%2024:10:2026%20a%20la(s)%2020.02.40.png');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
         color: var(--text-primary);
         overflow-x: hidden;
         transition:
@@ -124,9 +133,18 @@
           color 0.2s ease;
       }
 
-      /* Tarjetas Utilitarias Limpias (Sin sombras difusas, radio 12px, borde fino 1px) */
+      /* En mobile usar scroll para evitar caídas de rendimiento con fixed */
+      @media (max-width: 1023px) {
+        body {
+          background-attachment: scroll;
+        }
+      }
+
+      /* Tarjetas Utilitarias Limpias con efecto Glassmorphism sutil */
       .transit-card {
         background-color: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border: 1px solid var(--border-color);
         border-radius: var(--card-radius);
         transition: all 0.2s ease;
@@ -618,7 +636,7 @@
         <!-- PANEL DE LÍNEAS (Panel Lateral en Desktop / Bottom Sheet en Mobile) -->
         <aside
           id="monitor-list-col"
-          class="hidden lg:flex flex-col w-full lg:w-[380px] xl:w-[420px] h-auto max-h-[82vh] lg:max-h-none lg:h-full bg-[var(--bg-card)] border-t lg:border-t-0 lg:border-r border-[var(--border-color)] z-[1040] lg:z-20 shrink-0 fixed inset-x-0 bottom-0 lg:static rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none transition-all duration-300"
+          class="hidden lg:flex flex-col w-full lg:w-[380px] xl:w-[420px] h-auto max-h-[82vh] lg:max-h-none lg:h-full bg-[var(--bg-card)] backdrop-blur-md border-t lg:border-t-0 lg:border-r border-[var(--border-color)] z-[1040] lg:z-20 shrink-0 fixed inset-x-0 bottom-0 lg:static rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none transition-all duration-300"
         >
           <!-- Barra tirador de arrastre táctil (Solo Mobile) -->
           <div class="pt-2 pb-1 lg:hidden flex justify-center shrink-0">
@@ -675,7 +693,7 @@
           <!-- Contenedor Scrollable de Tarjetas -->
           <div
             id="lines-scroll-container"
-            class="flex-grow overflow-y-auto p-3 space-y-2.5 scrollbar-transit bg-[var(--bg-card)]"
+            class="flex-grow overflow-y-auto p-3 space-y-2.5 scrollbar-transit bg-[var(--bg-card)]/50"
           >
             <!-- ESTADO 1: ⏳ LOADING SKELETON -->
             <div id="lines-skeleton" class="hidden space-y-2.5">
@@ -808,7 +826,7 @@
           <button
             type="button"
             id="mobile-view-toggle"
-            class="px-4 py-2.5 rounded-full font-mono font-bold text-xs shadow-2xl flex items-center gap-2 border border-slate-700 bg-slate-950 text-white hover:border-[var(--accent-transit)] transition-all cursor-pointer"
+            class="px-4 py-2.5 rounded-full font-mono font-bold text-xs shadow-2xl flex items-center gap-2 border border-slate-700 bg-slate-950/90 backdrop-blur-md text-white hover:border-[var(--accent-transit)] transition-all cursor-pointer"
           >
             <i id="mobile-toggle-icon" class="fa-solid fa-list-ul text-[var(--accent-transit)]"></i>
             <span id="mobile-toggle-text">Ver Líneas (<span id="mobile-line-count">6</span>)</span>
