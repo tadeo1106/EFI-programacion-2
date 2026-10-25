@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stopMarkers: {},
     busMarkers: {},
     activeLineId: null,
-    currentMobileView: 'list',
+    currentMobileView: 'map',
     favorites: JSON.parse(localStorage.getItem('busrio_favs') || '[]'),
     isLowData: localStorage.getItem('busrio_low_data') === 'true',
     isKioskMode: false,
@@ -37,12 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initKioskMode();
   initStopFilterTabs();
   initSearch();
-  initHeroPlanner();
-  initHeroTripPlanner();
   initCardGrid();
-  initAlertsFeed();
-  initAlertForm();
-  
   initModal();
   initLiveCountdown();
 
@@ -389,52 +384,50 @@ document.addEventListener('DOMContentLoaded', () => {
      3. ALTERNADOR DE VISTA EN CELULARES (LISTA <-> MAPA) Y CONTROL RESPONSIVO
      ========================================================================== */
   function applyResponsiveView() {
-    const btnList = document.getElementById('mobile-view-list');
-    const btnMap = document.getElementById('mobile-view-map');
     const listCol = document.getElementById('monitor-list-col');
     const mapCol = document.getElementById('monitor-map-col');
+    const toggleIcon = document.getElementById('mobile-toggle-icon');
+    const toggleText = document.getElementById('mobile-toggle-text');
 
     if (!listCol || !mapCol) return;
 
     const isDesktop = window.innerWidth >= 1024;
 
     if (isDesktop) {
-      // En escritorio (>= 1024px), ambas columnas coexisten en el grid
+      // En escritorio (>= 1024px), ambas columnas coexisten (sidebar + mapa)
       listCol.classList.remove('hidden');
-      listCol.classList.add('block');
+      listCol.classList.add('flex');
       mapCol.classList.remove('hidden');
-      mapCol.classList.add('block');
+      mapCol.classList.add('flex');
 
       if (state.map) {
         state.map.invalidateSize();
       }
     } else {
-      // En dispositivos móviles (< 1024px), mostrar únicamente la vista activa seleccionada
-      if (state.currentMobileView === 'map') {
-        listCol.classList.add('hidden');
-        listCol.classList.remove('block');
-        mapCol.classList.remove('hidden');
-        mapCol.classList.add('block');
+      // En dispositivos móviles (< 1024px), el visor de mapa siempre permanece activo
+      mapCol.classList.remove('hidden');
+      mapCol.classList.add('flex');
 
-        if (btnMap && btnList) {
-          btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
-          btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
-        }
+      const count = BUSRIO_DATA && BUSRIO_DATA.lines ? BUSRIO_DATA.lines.length : 6;
+
+      if (state.currentMobileView === 'list') {
+        // Bottom sheet desplegado sobre el mapa
+        listCol.classList.remove('hidden');
+        listCol.classList.add('flex');
+
+        if (toggleText) toggleText.innerHTML = 'Ver Mapa';
+        if (toggleIcon) toggleIcon.className = 'fa-solid fa-map-location-dot text-[var(--accent-transit)]';
+      } else {
+        // Vista mapa activa por defecto (Bottom sheet replegado)
+        state.currentMobileView = 'map';
+        listCol.classList.add('hidden');
+        listCol.classList.remove('flex');
+
+        if (toggleText) toggleText.innerHTML = `Ver Líneas (<span id="mobile-line-count">${count}</span>)`;
+        if (toggleIcon) toggleIcon.className = 'fa-solid fa-list-ul text-[var(--accent-transit)]';
 
         if (state.map) {
           state.map.invalidateSize();
-        }
-      } else {
-        // Vista de lista por defecto en móvil
-        state.currentMobileView = 'list';
-        listCol.classList.remove('hidden');
-        listCol.classList.add('block');
-        mapCol.classList.add('hidden');
-        mapCol.classList.remove('block');
-
-        if (btnList && btnMap) {
-          btnList.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center gap-1.5';
-          btnMap.className = 'flex-1 py-2 rounded text-xs font-bold font-mono transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5';
         }
       }
     }
@@ -444,34 +437,38 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentMobileView = view;
     applyResponsiveView();
 
-    if (view === 'map' && state.map) {
+    if (state.map) {
       state.map.invalidateSize();
       setTimeout(() => {
         if (state.map) state.map.invalidateSize();
       }, 60);
+      setTimeout(() => {
+        if (state.map) state.map.invalidateSize();
+      }, 150);
     }
   }
 
   function initMobileViewSwitcher() {
-    const btnList = document.getElementById('mobile-view-list');
-    const btnMap = document.getElementById('mobile-view-map');
+    const toggleBtn = document.getElementById('mobile-view-toggle');
+    const closeBtn = document.getElementById('mobile-close-list-btn');
 
-    if (btnList) {
-      btnList.addEventListener('click', () => {
-        switchMobileView('list');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const nextView = state.currentMobileView === 'list' ? 'map' : 'list';
+        switchMobileView(nextView);
       });
     }
 
-    if (btnMap) {
-      btnMap.addEventListener('click', () => {
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
         switchMobileView('map');
       });
     }
 
-    // Inicializar estado responsivo
+    // Inicializar estado responsivo (arranca en mapa)
     applyResponsiveView();
 
-    // Sincronizar dinámicamente al redimensionar ventana (restaura la columna al volver a PC)
+    // Sincronizar dinámicamente al redimensionar ventana
     let resizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
@@ -490,12 +487,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tabsContainer.innerHTML = '';
 
-    // Botón "Todas las Garitas"
-    const allBtn = createTabButton('all', 'Todas las Garitas', 'fa-solid fa-layer-group', true);
+    // Mapeo de nombres concisos para que las pestañas entren completas sin cortarse
+    const stopShortNames = {
+      'plaza-roca': 'Plaza',
+      'hospital-padua': 'Hospital',
+      'unrc-campus': 'UNRC',
+      'centro-trasbordo': 'Trasbordo',
+      'banda-norte': 'Banda Norte',
+      'barrio-alberdi': 'Alberdi'
+    };
+
+    // Botón "Todas"
+    const allBtn = createTabButton('all', 'Todas', 'fa-solid fa-layer-group', true, 'Todas las Garitas');
     tabsContainer.appendChild(allBtn);
 
-    // Botón "⭐ Favoritos" (Persistido en localStorage)
-    const favsBtn = createTabButton('favorites', '⭐ Favoritos', 'fa-solid fa-star', false);
+    // Botón "Favoritos"
+    const favsBtn = createTabButton('favorites', 'Favoritos', 'fa-solid fa-star', false, 'Líneas Favoritas');
     tabsContainer.appendChild(favsBtn);
 
     // Botones por cada garita
@@ -504,22 +511,31 @@ document.addEventListener('DOMContentLoaded', () => {
                    stop.id === 'unrc-campus' ? 'fa-solid fa-graduation-cap' :
                    stop.id === 'plaza-roca' ? 'fa-solid fa-tree' :
                    stop.id === 'centro-trasbordo' ? 'fa-solid fa-arrows-split-up-and-left' :
-                   stop.id === 'banda-norte' ? 'fa-solid fa-compass' : 'fa-solid fa-location-dot';
-      const btn = createTabButton(stop.id, stop.name, icon, false);
+                   stop.id === 'banda-norte' ? 'fa-solid fa-compass' :
+                   stop.id === 'barrio-alberdi' ? 'fa-solid fa-house-chimney' : 'fa-solid fa-location-dot';
+      const label = stopShortNames[stop.id] || stop.name;
+      const btn = createTabButton(stop.id, label, icon, false, stop.name);
       tabsContainer.appendChild(btn);
     });
   }
 
-  function createTabButton(id, label, iconClass, isActive) {
+  function createTabButton(id, label, iconClass, isActive, fullName = '') {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('data-stop-id', id);
-    btn.className = `stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] ${
+    if (fullName) {
+      btn.setAttribute('title', fullName);
+      btn.setAttribute('aria-label', fullName);
+    } else {
+      btn.setAttribute('aria-label', label);
+    }
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    btn.className = `stop-tab-btn flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg font-mono text-xs transition-all min-h-[44px] cursor-pointer ${
       isActive
-        ? 'bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)]'
-        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium'
+        ? 'bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)] shadow-sm'
+        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-main)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium'
     }`;
-    btn.innerHTML = `<i class="${iconClass} text-[11px]"></i><span>${label}</span>`;
+    btn.innerHTML = `<i class="${iconClass} text-[11px] shrink-0"></i><span>${label}</span>`;
 
     btn.addEventListener('click', () => {
       selectStopTab(id);
@@ -530,11 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function selectStopTab(id) {
     document.querySelectorAll('.stop-tab-btn').forEach(b => {
-      b.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium';
+      b.setAttribute('aria-pressed', 'false');
+      b.className = 'stop-tab-btn flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg font-mono text-xs transition-all min-h-[44px] cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-main)] border border-[var(--border-color)] hover:border-[var(--border-hover)] font-medium';
     });
     const targetBtn = document.querySelector(`.stop-tab-btn[data-stop-id="${id}"]`);
     if (targetBtn) {
-      targetBtn.className = 'stop-tab-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-mono text-xs transition-all whitespace-nowrap min-h-[34px] bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)]';
+      targetBtn.setAttribute('aria-pressed', 'true');
+      targetBtn.className = 'stop-tab-btn flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg font-mono text-xs transition-all min-h-[44px] cursor-pointer bg-[var(--accent-transit)] text-slate-950 font-bold border border-[var(--accent-transit)] shadow-sm';
     }
 
     state.selectedStop = id;
@@ -562,211 +580,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     5. PLANIFICADOR RÁPIDO DEL HERO Y BÚSQUEDA
+     5. BÚSQUEDA Y FILTRADO DE LÍNEAS
      ========================================================================== */
-  function initHeroPlanner() {
-    const heroSearchBtn = document.getElementById('hero-search-btn');
-    const heroLineSelect = document.getElementById('hero-line-select');
-    const heroStopSelect = document.getElementById('hero-stop-select');
-
-    if (!heroSearchBtn) return;
-
-    heroSearchBtn.addEventListener('click', () => {
-      const lineVal = heroLineSelect ? heroLineSelect.value : '';
-      const stopVal = heroStopSelect ? heroStopSelect.value : 'all';
-
-      // Aplicar filtro de garita
-      selectStopTab(stopVal || 'all');
-
-      // Si seleccionó una línea específica
-      if (lineVal) {
-        const lineObj = BUSRIO_DATA.lines.find(l => l.id === lineVal);
-        if (lineObj) {
-          state.searchQuery = lineObj.number.toLowerCase();
-          const monitorSearchInput = document.getElementById('monitor-search-input');
-          if (monitorSearchInput) monitorSearchInput.value = lineObj.number;
-          
-          triggerCardRenderWithLoading();
-          setTimeout(() => {
-            focusLineOnMap(lineObj, false);
-          }, 300);
-        }
-      } else {
-        state.searchQuery = '';
-        const monitorSearchInput = document.getElementById('monitor-search-input');
-        if (monitorSearchInput) monitorSearchInput.value = '';
-        triggerCardRenderWithLoading();
-      }
-
-      // Desplazar suavemente hacia el Centro de Control respetando el navbar sticky
-      smoothScrollTo('monitor');
-      showToast('Filtro de tránsito aplicado al Centro de Control', 'info');
-    });
-  }
-
-  /* ==========================================================================
-     5.1 PLANIFICADOR DE VIAJES INTELIGENTE "¿CÓMO LLEGO?"
-     ========================================================================== */
-  function initHeroTripPlanner() {
-    const tabSearch = document.getElementById('hero-tab-search');
-    const tabPlanner = document.getElementById('hero-tab-planner');
-    const viewSearch = document.getElementById('hero-view-search');
-    const viewPlanner = document.getElementById('hero-view-planner');
-    const planTripBtn = document.getElementById('plan-trip-btn');
-    const originSelect = document.getElementById('trip-origin-select');
-    const destSelect = document.getElementById('trip-destination-select');
-    const resultBox = document.getElementById('trip-result-box');
-
-    if (!tabSearch || !tabPlanner || !viewSearch || !viewPlanner) return;
-
-    tabSearch.addEventListener('click', () => {
-      viewSearch.classList.remove('hidden');
-      viewPlanner.classList.add('hidden');
-      tabSearch.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center gap-1.5';
-      tabPlanner.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5';
-    });
-
-    tabPlanner.addEventListener('click', () => {
-      viewSearch.classList.add('hidden');
-      viewPlanner.classList.remove('hidden');
-      tabPlanner.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all bg-[var(--accent-transit)] text-slate-950 flex items-center gap-1.5';
-      tabSearch.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5';
-    });
-
-    if (planTripBtn) {
-      planTripBtn.addEventListener('click', () => {
-        const originId = originSelect ? originSelect.value : '';
-        const destId = destSelect ? destSelect.value : '';
-
-        if (!originId || !destId || !resultBox) return;
-
-        if (originId === destId) {
-          resultBox.classList.remove('hidden');
-          resultBox.innerHTML = `
-            <div class="p-2.5 text-center text-amber-400 font-mono text-xs">
-              ⚠️ El origen y destino elegidos corresponden a la misma garita. Elige dos puntos diferentes.
-            </div>
-          `;
-          return;
-        }
-
-        const originStop = BUSRIO_DATA.stops.find(s => s.id === originId);
-        const destStop = BUSRIO_DATA.stops.find(s => s.id === destId);
-        if (!originStop || !destStop) return;
-
-        // Búsqueda de trayecto directo
-        const directLines = BUSRIO_DATA.lines.filter(l => 
-          originStop.lines.includes(l.id) && destStop.lines.includes(l.id)
-        );
-
-        if (directLines.length > 0) {
-          const best = directLines[0];
-          resultBox.classList.remove('hidden');
-          resultBox.innerHTML = `
-            <div class="space-y-2">
-              <div class="flex items-center justify-between pb-1.5 border-b border-[var(--border-color)]">
-                <span class="text-emerald-400 font-bold flex items-center gap-1.5 uppercase text-[10px]">
-                  <i class="fa-solid fa-circle-check"></i>
-                  <span>Trayecto Directo (Sin trasbordo)</span>
-                </span>
-                <span class="text-[10px] text-[var(--accent-transit)] font-bold">1 Boleto ($1.150)</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded font-bold text-slate-950 text-xs shrink-0" style="background-color: ${best.color};">${best.number}</span>
-                  <span class="text-[var(--text-primary)] font-medium truncate">${best.direction}</span>
-                </div>
-                <span class="text-xs text-[var(--text-muted)] shrink-0 font-bold">~15 min</span>
-              </div>
-              <div class="text-[11px] text-[var(--text-secondary)] font-sans">
-                Subir en <strong>${originStop.name}</strong> · Arribo en garita en <strong>${best.etaMinutes} min</strong>.
-              </div>
-              <button type="button" id="trip-focus-btn" class="w-full mt-1.5 py-2 rounded bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-transit)] text-xs text-[var(--accent-transit)] font-mono font-bold flex items-center justify-center gap-2 transition-all">
-                <i class="fa-solid fa-map-location-dot"></i>
-                <span>Ver Línea en Centro de Control</span>
-              </button>
-            </div>
-          `;
-
-          const focusBtn = document.getElementById('trip-focus-btn');
-          if (focusBtn) {
-            focusBtn.addEventListener('click', () => {
-              focusLineOnMap(best);
-              smoothScrollTo('monitor');
-            });
-          }
-        } else {
-          // Búsqueda de trasbordo en hub común (Plaza Roca / Centro Trasbordo)
-          const originLines = BUSRIO_DATA.lines.filter(l => originStop.lines.includes(l.id));
-          const destLines = BUSRIO_DATA.lines.filter(l => destStop.lines.includes(l.id));
-
-          let connection = null;
-          for (const lineA of originLines) {
-            for (const lineB of destLines) {
-              const commonHub = BUSRIO_DATA.stops.find(s => s.lines.includes(lineA.id) && s.lines.includes(lineB.id));
-              if (commonHub) {
-                connection = { lineA, lineB, hub: commonHub };
-                break;
-              }
-            }
-            if (connection) break;
-          }
-
-          if (connection) {
-            resultBox.classList.remove('hidden');
-            resultBox.innerHTML = `
-              <div class="space-y-2.5">
-                <div class="flex items-center justify-between pb-1.5 border-b border-[var(--border-color)]">
-                  <span class="text-[var(--accent-transit)] font-bold flex items-center gap-1.5 uppercase text-[10px]">
-                    <i class="fa-solid fa-arrows-split-up-and-left"></i>
-                    <span>Combinación con Boleto de 60m</span>
-                  </span>
-                  <span class="text-[10px] text-emerald-400 font-bold">2do tramo: $0</span>
-                </div>
-                <div class="space-y-1.5 text-[11px]">
-                  <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
-                    <span class="truncate">Tomar <strong>${connection.lineA.number}</strong> hasta ${connection.hub.name}</span>
-                  </div>
-                  <div class="flex items-center gap-2 text-[var(--accent-transit)] pl-6 text-[10px]">
-                    <i class="fa-solid fa-arrow-down"></i>
-                    <span>Trasbordo en garita (espera ~4 min)</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
-                    <span class="truncate">Subir a <strong>${connection.lineB.number}</strong> directo hacia ${destStop.name}</span>
-                  </div>
-                </div>
-                <div class="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400">
-                  ✓ Ventana de 60 min activa. Total: <strong>$1.150</strong> (Ahorrás $1.150).
-                </div>
-                <button type="button" id="trip-focus-btn" class="w-full mt-1 py-2 rounded bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-transit)] text-xs text-[var(--accent-transit)] font-mono font-bold flex items-center justify-center gap-2 transition-all">
-                  <i class="fa-solid fa-map-location-dot"></i>
-                  <span>Trazar Conexión en Mapa</span>
-                </button>
-              </div>
-            `;
-
-            const focusBtn = document.getElementById('trip-focus-btn');
-            if (focusBtn) {
-              focusBtn.addEventListener('click', () => {
-                focusLineOnMap(connection.lineA);
-                smoothScrollTo('monitor');
-              });
-            }
-          } else {
-            resultBox.classList.remove('hidden');
-            resultBox.innerHTML = `
-              <div class="p-2.5 text-center text-[var(--text-secondary)] font-mono text-xs">
-                No se halló trasbordo directo entre estas garitas en la red urbana principal.
-              </div>
-            `;
-          }
-        }
-      });
-    }
-  }
-
   function initSearch() {
     const monitorSearchInput = document.getElementById('monitor-search-input');
 
@@ -1003,6 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
      7. MAPA LEAFLET RÍGIDO Y SINCRONIZACIÓN (SEGÚN GUÍA OFICIAL)
      ========================================================================== */
   function initLeafletMap() {
+    if (state.map) return;
     const mapContainer = document.getElementById('map') || document.getElementById('leaflet-map');
     if (!mapContainer) return;
 
@@ -1153,93 +969,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       if (state.map) state.map.invalidateSize();
-    }, 250);
-  }
+    }, 50);
 
-  /* ==========================================================================
-     TELEMETRÍA SIMULADA: COLECTIVOS ANIMADOS EN MOVIMIENTO (LEAFLET)
-     ========================================================================== */
-  function initBusMovementTelemetry() {
-    if (!state.map) return;
+    setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+    }, 150);
 
-    // Crear marcadores animados para cada línea
-    BUSRIO_DATA.lines.forEach(line => {
-      if (!line.routeCoords || line.routeCoords.length < 2) return;
-
-      const startIndex = typeof line.currentCoordIndex === 'number' ? line.currentCoordIndex : 0;
-      const startCoord = line.routeCoords[startIndex % line.routeCoords.length];
-
-      const busIcon = L.divIcon({
-        className: 'custom-moving-bus-marker',
-        html: `
-          <div class="moving-bus-container" id="moving-bus-${line.id}">
-            <div class="moving-bus-ping" style="background-color: ${line.color};"></div>
-            <div class="moving-bus-badge" style="background-color: ${line.color};">
-              <i class="fa-solid fa-bus text-[9px]"></i>
-              <span>${line.number.replace('Línea ', 'L')}</span>
-            </div>
-          </div>
-        `,
-        iconSize: [44, 24],
-        iconAnchor: [22, 12]
-      });
-
-      const marker = L.marker(startCoord, { icon: busIcon }).addTo(state.map);
-
-      marker.bindPopup(`
-        <div class="p-1 font-mono text-xs text-[var(--text-primary)] space-y-1 min-w-[160px]">
-          <div class="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-1">
-            <strong style="color: ${line.color};">${line.number} · ${line.busUnit || 'Coche Activo'}</strong>
-            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[9px]">EN VIVO</span>
-          </div>
-          <div class="text-[11px] text-[var(--text-secondary)] space-y-0.5 font-sans">
-            <div>Velocidad: <strong class="text-[var(--text-primary)] font-mono">${line.speed || 32} km/h</strong></div>
-            <div>Ocupación: <strong class="text-[var(--text-primary)]">${line.capacity}</strong></div>
-            <div>Próxima garita: <strong class="text-[var(--text-primary)]">${line.stopName}</strong></div>
-          </div>
-          <div class="pt-1 text-[10px] text-[var(--accent-transit)] font-bold">
-            Arribo estimado: en ${line.etaMinutes} min
-          </div>
-        </div>
-      `);
-
-      marker.on('click', () => {
-        focusLineOnMap(line, false);
-      });
-
-      state.busMarkers[line.id] = {
-        marker,
-        coordIndex: startIndex,
-        coords: line.routeCoords,
-        line
-      };
-    });
-
-    // Bucle de telemetría: cada 3.2 segundos avanzan hacia el siguiente nodo de su ruta
-    if (state.busTelemetryInterval) {
-      clearInterval(state.busTelemetryInterval);
-    }
-
-    state.busTelemetryInterval = setInterval(() => {
-      // Si está en modo ahorro de datos extremo, se pausa el movimiento continuo
-      if (state.isLowData) return;
-
-      Object.keys(state.busMarkers).forEach(lineId => {
-        const busObj = state.busMarkers[lineId];
-        if (!busObj || !busObj.coords || busObj.coords.length === 0) return;
-
-        busObj.coordIndex = (busObj.coordIndex + 1) % busObj.coords.length;
-        const nextCoord = busObj.coords[busObj.coordIndex];
-
-        busObj.marker.setLatLng(nextCoord);
-
-        // Jitter de velocidad realista
-        if (busObj.line.speed) {
-          const delta = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 2);
-          busObj.line.speed = Math.max(20, Math.min(40, busObj.line.speed + delta));
-        }
-      });
-    }, 3200);
+    setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+    }, 300);
   }
 
   function focusLineOnMap(line, autoSwitchMobile = true) {
@@ -1425,182 +1163,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9. ALERTAS CIUDADANAS
-     ========================================================================== */
-  function initAlertsFeed() {
-    const feedContainer = document.getElementById('alerts-feed-container');
-    if (!feedContainer) return;
-
-    feedContainer.innerHTML = '';
-    BUSRIO_DATA.alerts.forEach(alert => {
-      feedContainer.appendChild(createAlertCard(alert));
-    });
-
-    document.querySelectorAll('.quick-report-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const incidentText = btn.getAttribute('data-incident');
-        const incidentSelect = document.getElementById('report-type');
-        if (incidentSelect && incidentText) {
-          incidentSelect.value = incidentText;
-          const reportTarget = document.getElementById('report-form-card') || document.getElementById('report-form');
-          smoothScrollTo(reportTarget);
-          showToast(`Incidencia seleccionada: ${incidentText}`, 'info');
-        }
-      });
-    });
-  }
-
-  function createAlertCard(alert) {
-    const item = document.createElement('div');
-    const isCritical = alert.type === 'danger' || alert.title.includes('Desvío') || alert.title.includes('Corte');
-    
-    const cardBorderClass = isCritical 
-      ? 'border border-[var(--alert-soft-border)] bg-[var(--alert-soft-bg)]' 
-      : 'border border-[var(--border-color)] bg-[var(--bg-main)]';
-
-    const tagClass = isCritical
-      ? 'bg-[var(--alert-soft)] text-white'
-      : 'bg-[var(--border-color)] text-[var(--text-primary)]';
-
-    item.className = `p-3 rounded-lg ${cardBorderClass} transition-all text-xs font-sans`;
-    item.innerHTML = `
-      <div class="flex items-start justify-between gap-2 mb-1">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold shrink-0 ${tagClass}">
-            ${alert.line}
-          </span>
-          <h4 class="font-heading font-bold text-xs truncate text-[var(--text-primary)]">${alert.title}</h4>
-        </div>
-        <span class="font-mono text-[10px] text-[var(--text-muted)] shrink-0">${alert.time}</span>
-      </div>
-      <p class="text-[11px] text-[var(--text-secondary)] mb-2 leading-relaxed font-sans">${alert.description}</p>
-      <div class="flex items-center justify-between font-mono text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-color)]">
-        <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-[var(--accent-transit)]"></i>${alert.stop}</span>
-        <span class="flex items-center gap-1">${alert.author}</span>
-      </div>
-    `;
-    return item;
-  }
-
-  function initAlertForm() {
-    const form = document.getElementById('report-form');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const lineSelect = document.getElementById('report-line');
-      const stopSelect = document.getElementById('report-stop');
-      const typeSelect = document.getElementById('report-type');
-      const commentInput = document.getElementById('report-comment');
-      const nameInput = document.getElementById('report-name');
-
-      clearFormErrors();
-
-      let hasError = false;
-
-      if (!lineSelect.value) {
-        showFieldError(lineSelect, 'Selecciona la línea.');
-        hasError = true;
-      }
-
-      if (!stopSelect.value) {
-        showFieldError(stopSelect, 'Selecciona la garita.');
-        hasError = true;
-      }
-
-      if (!typeSelect.value) {
-        showFieldError(typeSelect, 'Indica el motivo.');
-        hasError = true;
-      }
-
-      if (hasError) {
-        showToast('Completa los campos requeridos', 'error');
-        return;
-      }
-
-      const selectedLineObj = BUSRIO_DATA.lines.find(l => l.id === lineSelect.value);
-      const selectedStopObj = BUSRIO_DATA.stops.find(s => s.id === stopSelect.value);
-
-      const newAlert = {
-        id: `alt-${Date.now()}`,
-        type: typeSelect.value.includes('Desvío') || typeSelect.value.includes('Corte') ? 'danger' : 'warning',
-        title: typeSelect.value,
-        line: selectedLineObj ? selectedLineObj.number : 'Línea Urbana',
-        stop: selectedStopObj ? selectedStopObj.name : stopSelect.value,
-        author: nameInput.value.trim() ? `${nameInput.value.trim()} (Pasajero)` : 'Pasajero Verificado',
-        time: 'Recién ahora',
-        description: commentInput.value.trim() || `Reporte emitido desde ${selectedStopObj ? selectedStopObj.name : 'garita'}.`
-      };
-
-      BUSRIO_DATA.alerts.unshift(newAlert);
-      const feedContainer = document.getElementById('alerts-feed-container');
-      if (feedContainer) {
-        feedContainer.prepend(createAlertCard(newAlert));
-      }
-
-      form.reset();
-      showToast('Alerta ciudadana registrada con éxito', 'success');
-    });
-  }
-
-  function showFieldError(field, message) {
-    field.classList.add('border-red-500');
-    field.classList.remove('border-[var(--border-color)]');
-    const parent = field.parentElement;
-    const errorMsg = document.createElement('p');
-    errorMsg.className = 'field-error-text text-red-500 font-mono text-[10px] mt-1 font-semibold';
-    errorMsg.textContent = message;
-    parent.appendChild(errorMsg);
-  }
-
-  function clearFormErrors() {
-    document.querySelectorAll('.field-error-text').forEach(el => el.remove());
-    document.querySelectorAll('#report-form select, #report-form input').forEach(field => {
-      field.classList.remove('border-red-500');
-      field.classList.add('border-[var(--border-color)]');
-    });
-  }
-
-  /* ==========================================================================
-     SIMULADOR INTERACTIVO DE AHORRO TARIFARIO (BOLETO COMBINADO RÍO CUARTO)
-     ========================================================================== */
-  function initFareSavingsCalculator() {
-    const slider = document.getElementById('calc-trips-slider');
-    const daysSelect = document.getElementById('calc-days-select');
-    const tripsValEl = document.getElementById('calc-trips-val');
-    const noTransferEl = document.getElementById('calc-cost-no-transfer');
-    const withTransferEl = document.getElementById('calc-cost-with-transfer');
-    const savedEl = document.getElementById('calc-total-saved');
-
-    if (!slider || !daysSelect || !tripsValEl || !noTransferEl || !withTransferEl || !savedEl) return;
-
-    function recalculate() {
-      const tripsPerDay = parseInt(slider.value, 10);
-      const daysPerMonth = parseInt(daysSelect.value, 10);
-      const singleFare = (BUSRIO_DATA.fare && BUSRIO_DATA.fare.singleTicket) ? BUSRIO_DATA.fare.singleTicket : 1150;
-
-      tripsValEl.textContent = `${tripsPerDay} ${tripsPerDay === 1 ? 'viaje' : 'viajes'}`;
-
-      // Sin combinación: Cada viaje requiere pagar 2 boletos completos
-      const totalNoTransfer = tripsPerDay * 2 * singleFare * daysPerMonth;
-      // Con boleto combinado: 1 boleto por viaje (2do tramo a $0 bonificado dentro de 60m)
-      const totalWithTransfer = tripsPerDay * 1 * singleFare * daysPerMonth;
-      const totalSaved = totalNoTransfer - totalWithTransfer;
-
-      noTransferEl.textContent = `$${totalNoTransfer.toLocaleString('es-AR')}`;
-      withTransferEl.textContent = `$${totalWithTransfer.toLocaleString('es-AR')}`;
-      savedEl.textContent = `+$${totalSaved.toLocaleString('es-AR')}`;
-    }
-
-    slider.addEventListener('input', recalculate);
-    daysSelect.addEventListener('change', recalculate);
-    recalculate();
-  }
-
-  /* ==========================================================================
      10. TOASTS RESPONSIVOS Y UTILITARIOS
-     ========================================================================= */
+     ========================================================================== */
   function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -1686,36 +1250,3 @@ document.addEventListener("DOMContentLoaded", () => {
     observer.observe(el);
   });
 });
-
-
-  /* ==========================================================================
-     VALIDACIÓN DE FORMULARIO DE ALERTAS
-     ========================================================================== */
-  const reportForm = document.getElementById('report-form');
-  if (reportForm) {
-    reportForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      const lineInput = document.getElementById('report-line').value;
-      const descInput = document.getElementById('report-desc').value.trim();
-      
-      if (!lineInput || lineInput === '0') {
-         showToast('Error: Debes seleccionar una línea.', 'error');
-         return;
-      }
-      
-      if (descInput.length < 10) {
-         showToast('Error: La descripción debe tener al menos 10 caracteres.', 'error');
-         return;
-      }
-      
-      showToast('¡Alerta enviada y validada con éxito!', 'success');
-      reportForm.reset();
-      
-      // Impactar en la simulación (Simular Demora)
-      if (window.SimulationEngine) {
-         // Opcional: buscar la linea y ponerla en demora
-         // Como demostración para E.F.I., lo logueamos
-      }
-    });
-  }
