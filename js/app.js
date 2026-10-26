@@ -7,6 +7,20 @@
  * - Notificaciones y controles optimizados para celulares y escritorios.
  */
 
+/* ==========================================================================
+   ⚠️ ROL ADMINISTRADOR SIMULADO (SOLO FRONTEND - SIN SEGURIDAD REAL)
+   Las credenciales están en texto plano en el código del cliente y la sesión
+   se guarda en localStorage. Cualquiera puede leerlas o falsificar la sesión
+   desde las DevTools. Es una simulación académica (E.F.I.): en producción el
+   login y los cambios de estado deben validarse en un backend.
+   ========================================================================== */
+const ADMIN_CREDENTIALS = Object.freeze({
+  username: 'admin',
+  password: 'busrio2026'
+});
+const ADMIN_SESSION_KEY = 'busrio_admin';
+const ADMIN_STATE_KEY = 'busrio_admin_state';
+
 document.addEventListener('DOMContentLoaded', () => {
   // Estado central de la aplicación
   const state = {
@@ -39,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearch();
   initCardGrid();
   initModal();
+  initAdmin();
   initLiveCountdown();
 
   /* ==========================================================================
@@ -235,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="text-right">
               <span class="text-[10px] sm:text-xs text-slate-400 uppercase block font-sans">Arribo en</span>
               <span class="text-xl sm:text-3xl font-extrabold text-[var(--accent-transit)] tracking-tight">
-                ${line.etaMinutes} MIN
+                ${getDisplayEta(line)} MIN
               </span>
             </div>
           </div>
@@ -722,7 +737,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Estados utilitarios
     let statusBadgeColor = 'border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)]';
     let statusText = 'Normal';
-    let pulseClass = line.etaMinutes <= 5 ? 'animate-pulse' : '';
+    const displayEta = getDisplayEta(line);
+    let pulseClass = displayEta <= 5 ? 'animate-pulse' : '';
 
     if (line.status === 'warning') {
       statusBadgeColor = 'border border-amber-500/40 bg-amber-500/10 text-amber-400';
@@ -753,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
           <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] font-bold ${pulseClass} bg-[var(--bg-main)] text-[var(--accent-transit)] border border-[var(--border-color)]">
             <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"></span>
-            <span>${line.etaMinutes} MIN</span>
+            <span>${displayEta} MIN</span>
           </div>
         </div>
       </div>
@@ -1160,6 +1176,499 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.removeAttribute('hidden');
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+  }
+
+  /* ==========================================================================
+     9. ROL ADMINISTRADOR SIMULADO (LOGIN + PANEL DE CONTROL)
+     ⚠️ Simulación sin seguridad real (ver ADMIN_CREDENTIALS al inicio del archivo).
+     Los datos de configuración se definen dentro de funciones / state porque
+     initAdmin() se invoca antes de este bloque (evita errores de TDZ con const).
+     ========================================================================== */
+  function getAdminConfig() {
+    return {
+      validStatuses: ['normal', 'warning', 'danger'],
+      statusOptions: { normal: 'Normal', warning: 'Demorada', danger: 'Desviada' },
+      statusLabels: {
+        normal: 'Normal - A Horario',
+        warning: 'Demorada (+5 min)',
+        danger: 'Desviada (recorrido alternativo)'
+      },
+      // Minutos que se suman al ETA según el estado de la línea
+      etaPenalty: { normal: 0, warning: 5, danger: 8 },
+      speeds: [0.5, 1, 2]
+    };
+  }
+
+  // ETA mostrado = ETA simulado + diferencia de penalización respecto del estado original de demo
+  function getDisplayEta(line) {
+    const original = state.adminOriginal && state.adminOriginal[line.id];
+    if (!original) return line.etaMinutes;
+    const penalty = getAdminConfig().etaPenalty;
+    const diff = (penalty[line.status] || 0) - (penalty[original.status] || 0);
+    return Math.max(1, line.etaMinutes + diff);
+  }
+
+  function isAdminLoggedIn() {
+    try {
+      const session = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || 'null');
+      return !!(session && session.user === ADMIN_CREDENTIALS.username);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function loadAdminState() {
+    const empty = { lines: {}, paused: [], timeScale: null };
+    try {
+      const raw = JSON.parse(localStorage.getItem(ADMIN_STATE_KEY) || 'null');
+      if (!raw || typeof raw !== 'object') return empty;
+      const { validStatuses, speeds } = getAdminConfig();
+      const lines = {};
+      Object.keys(raw.lines || {}).forEach(id => {
+        if (state.adminOriginal[id] && validStatuses.includes(raw.lines[id])) lines[id] = raw.lines[id];
+      });
+      const paused = Array.isArray(raw.paused) ? raw.paused.filter(id => state.adminOriginal[id]) : [];
+      const timeScale = speeds.includes(raw.timeScale) ? raw.timeScale : null;
+      return { lines, paused, timeScale };
+    } catch (err) {
+      return empty;
+    }
+  }
+
+  function saveAdminState(adminState) {
+    localStorage.setItem(ADMIN_STATE_KEY, JSON.stringify(adminState));
+  }
+
+  // Aplica un estado a una línea: datos, simulación (marcador) y trazado del mapa
+  function applyLineStatus(lineId, status) {
+    const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+    const original = state.adminOriginal[lineId];
+    if (!line || !original) return;
+
+    line.status = status;
+    line.statusLabel = status === original.status ? original.statusLabel : getAdminConfig().statusLabels[status];
+
+    if (window.SimulationEngine && SimulationEngine.setLineStatus) {
+      SimulationEngine.setLineStatus(lineId, status);
+    }
+
+    const layer = state.routeLayers[lineId];
+    if (layer) {
+      layer.setStyle({ dashArray: status === 'danger' ? '6, 6' : status === 'warning' ? '2, 8' : null });
+    }
+  }
+
+  function applyAdminStateToApp(adminState) {
+    BUSRIO_DATA.lines.forEach(line => {
+      const status = adminState.lines[line.id] || state.adminOriginal[line.id].status;
+      applyLineStatus(line.id, status);
+      if (window.SimulationEngine && SimulationEngine.setBusPaused) {
+        SimulationEngine.setBusPaused(line.id, adminState.paused.includes(line.id));
+      }
+    });
+    if (window.SimulationEngine) {
+      SimulationEngine.setTimeScale(adminState.timeScale || 1);
+    }
+  }
+
+  function initAdmin() {
+    // Snapshot del estado original de demo (base para ETA y para "Restablecer")
+    state.adminOriginal = {};
+    BUSRIO_DATA.lines.forEach(line => {
+      state.adminOriginal[line.id] = { status: line.status, statusLabel: line.statusLabel };
+    });
+    state.adminLastFocus = null;
+
+    const loginBtn = document.getElementById('admin-login-btn');
+    const panelBtn = document.getElementById('admin-panel-btn');
+    const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+    const mobileAdminLabel = document.getElementById('mobile-admin-label');
+
+    const loginModal = document.getElementById('admin-login-modal');
+    const loginForm = document.getElementById('admin-login-form');
+    const userInput = document.getElementById('admin-username');
+    const passInput = document.getElementById('admin-password');
+    const loginError = document.getElementById('admin-login-error');
+
+    const panel = document.getElementById('admin-panel');
+    const linesList = document.getElementById('admin-lines-list');
+    const fleetList = document.getElementById('admin-fleet-list');
+    const speedGroup = document.getElementById('admin-speed-group');
+    const resetBtn = document.getElementById('admin-reset-btn');
+    const logoutBtn = document.getElementById('admin-logout-btn');
+
+    // Aplicar cambios persistidos del admin al iniciar (visibles para cualquier usuario)
+    applyAdminStateToApp(loadAdminState());
+
+    if (!loginModal || !panel) return;
+
+    const isOpen = (el) => el && !el.classList.contains('hidden');
+
+    function openDialog(el, focusEl) {
+      state.adminLastFocus = document.activeElement;
+      el.classList.remove('hidden');
+      el.removeAttribute('hidden');
+      document.body.classList.add('overflow-hidden');
+      setTimeout(() => { if (focusEl) focusEl.focus(); }, 30);
+    }
+
+    function closeDialog(el) {
+      el.classList.add('hidden');
+      el.setAttribute('hidden', '');
+      if (!isOpen(loginModal) && !isOpen(panel)) {
+        document.body.classList.remove('overflow-hidden');
+      }
+      const last = state.adminLastFocus;
+      if (last && document.body.contains(last) && last.offsetParent !== null) last.focus();
+    }
+
+    function trapFocus(e, el) {
+      const focusables = Array.from(
+        el.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      ).filter(node => node.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    function updateAdminUI() {
+      const logged = isAdminLoggedIn();
+      if (loginBtn) loginBtn.classList.toggle('hidden', logged);
+      if (panelBtn) panelBtn.classList.toggle('hidden', !logged);
+      if (mobileAdminLabel) mobileAdminLabel.textContent = logged ? 'Panel Admin' : 'Acceso Admin';
+      if (mobileAdminBtn) {
+        mobileAdminBtn.setAttribute('aria-label', logged ? 'Abrir panel de administración' : 'Iniciar sesión como administrador');
+      }
+      if (!logged && isOpen(panel)) closeDialog(panel);
+    }
+
+    /* ---------- Login ---------- */
+    function clearLoginError() {
+      if (loginError) {
+        loginError.textContent = '';
+        loginError.classList.add('hidden');
+      }
+      [userInput, passInput].forEach(input => {
+        if (!input) return;
+        input.removeAttribute('aria-invalid');
+        input.classList.remove('border-red-500');
+      });
+    }
+
+    function showLoginError(message, fields) {
+      if (loginError) {
+        loginError.textContent = message;
+        loginError.classList.remove('hidden');
+      }
+      fields.forEach(input => {
+        input.setAttribute('aria-invalid', 'true');
+        input.classList.add('border-red-500');
+      });
+      if (fields[0]) fields[0].focus();
+    }
+
+    function openLogin() {
+      if (loginForm) loginForm.reset();
+      clearLoginError();
+      openDialog(loginModal, userInput);
+    }
+
+    function closeLogin() {
+      closeDialog(loginModal);
+    }
+
+    if (loginForm && userInput && passInput) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearLoginError();
+
+        const username = userInput.value.trim();
+        const password = passInput.value;
+
+        if (!username && !password) {
+          showLoginError('Completá el usuario y la contraseña.', [userInput, passInput]);
+          return;
+        }
+        if (!username) {
+          showLoginError('Ingresá el nombre de usuario.', [userInput]);
+          return;
+        }
+        if (!password) {
+          showLoginError('Ingresá la contraseña.', [passInput]);
+          return;
+        }
+
+        // ⚠️ Comparación en el cliente: simulación sin seguridad real
+        if (username !== ADMIN_CREDENTIALS.username || password !== ADMIN_CREDENTIALS.password) {
+          passInput.value = '';
+          showLoginError('Usuario o contraseña incorrectos. Verificá los datos e intentá de nuevo.', [passInput]);
+          return;
+        }
+
+        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ user: username, since: new Date().toISOString() }));
+        loginForm.reset();
+        closeLogin();
+        updateAdminUI();
+        showToast('Sesión de administrador iniciada', 'success');
+        openPanel();
+      });
+
+      [userInput, passInput].forEach(input => {
+        input.addEventListener('input', () => {
+          input.removeAttribute('aria-invalid');
+          input.classList.remove('border-red-500');
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-admin-login-close]').forEach(el => {
+      el.addEventListener('click', closeLogin);
+      // Backdrop click for admin login modal
+      const adminLoginBackdrop = loginModal.querySelector('#modal-backdrop');
+      if (adminLoginBackdrop) adminLoginBackdrop.addEventListener('click', (e) => { if (isOpen(loginModal)) closeLogin(); });
+      // Escape key to close admin login modal
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen(loginModal)) closeLogin(); });
+    });
+
+    /* ---------- Panel ---------- */
+    function renderAdminLines() {
+      if (!linesList) return;
+      const { statusOptions } = getAdminConfig();
+      linesList.innerHTML = BUSRIO_DATA.lines.map(line => `
+        <li class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)]">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${line.color};" aria-hidden="true"></span>
+            <div class="min-w-0">
+              <p class="font-mono font-bold text-xs text-[var(--text-primary)]">${line.number}</p>
+              <p class="text-[11px] text-[var(--text-secondary)] truncate">${line.name}</p>
+            </div>
+          </div>
+          <label for="admin-status-${line.id}" class="sr-only">Estado de ${line.number}</label>
+          <select
+            id="admin-status-${line.id}"
+            data-admin-line="${line.id}"
+            class="min-h-[44px] shrink-0 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] font-mono text-xs px-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-transit)] cursor-pointer"
+          >
+            ${Object.keys(statusOptions).map(value => `
+              <option value="${value}" ${line.status === value ? 'selected' : ''}>${statusOptions[value]}</option>
+            `).join('')}
+          </select>
+        </li>
+      `).join('');
+    }
+
+    function renderAdminFleet() {
+      if (!fleetList) return;
+      const sim = window.SimulationEngine;
+      fleetList.innerHTML = BUSRIO_DATA.lines.map(line => {
+        const paused = !!(sim && sim.isBusPaused && sim.isBusPaused(line.id));
+        const unit = line.busUnit || 'Unidad';
+        return `
+          <li class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)]">
+            <div class="min-w-0">
+              <p class="font-mono font-bold text-xs text-[var(--text-primary)] truncate">${line.number.replace('Línea ', 'L')} · ${unit}</p>
+              <p class="text-[11px] font-mono ${paused ? 'text-slate-400' : 'text-emerald-500'}">
+                <i class="fa-solid ${paused ? 'fa-circle-pause' : 'fa-circle-play'} mr-1" aria-hidden="true"></i>${paused ? 'Pausado' : 'En movimiento'}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-admin-bus="${line.id}"
+              aria-pressed="${paused}"
+              aria-label="${paused ? 'Reanudar' : 'Pausar'} ${unit} de la ${line.number}"
+              class="min-h-[44px] min-w-[44px] px-3 rounded-lg border font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
+                paused
+                  ? 'bg-[var(--accent-transit)] text-slate-950 border-[var(--accent-transit)] hover:bg-[var(--accent-transit-hover)]'
+                  : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-transit)]'
+              }"
+            >
+              <i class="fa-solid ${paused ? 'fa-play' : 'fa-pause'}" aria-hidden="true"></i>
+              <span>${paused ? 'Reanudar' : 'Pausar'}</span>
+            </button>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function renderAdminSpeed() {
+      if (!speedGroup || !window.SimulationEngine) return;
+      const current = SimulationEngine.getTimeScale();
+      speedGroup.querySelectorAll('[data-admin-speed]').forEach(btn => {
+        const active = parseFloat(btn.dataset.adminSpeed) === current;
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        btn.classList.toggle('bg-[var(--accent-transit)]', active);
+        btn.classList.toggle('text-slate-950', active);
+        btn.classList.toggle('text-[var(--text-secondary)]', !active);
+      });
+    }
+
+    function renderAdminPanel() {
+      renderAdminLines();
+      renderAdminFleet();
+      renderAdminSpeed();
+    }
+
+    function openPanel() {
+      if (!isAdminLoggedIn()) {
+        openLogin();
+        return;
+      }
+      renderAdminPanel();
+      openDialog(panel, document.getElementById('admin-panel-close'));
+    }
+
+    function closePanel() {
+      closeDialog(panel);
+    }
+
+    // Click on X button closes panel
+    document.querySelectorAll('[data-admin-panel-close]').forEach(el => {
+      el.addEventListener('click', closePanel);
+    });
+
+    // Backdrop click for admin panel modal (only once)
+    const adminPanelBackdrop = panel.querySelector('#modal-backdrop');
+    if (adminPanelBackdrop) {
+      adminPanelBackdrop.addEventListener('click', (e) => {
+        if (isOpen(panel)) closePanel();
+      });
+    }
+
+    // Escape key to close admin panel modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen(panel)) closePanel();
+    });
+
+    // Delegación de eventos: un único listener por contenedor (sin duplicados al re-renderizar)
+    if (linesList) {
+      linesList.addEventListener('change', (e) => {
+        const select = e.target.closest('select[data-admin-line]');
+        if (!select || !isAdminLoggedIn()) return;
+        const lineId = select.dataset.adminLine;
+        const status = select.value;
+        const { validStatuses, statusOptions } = getAdminConfig();
+        if (!validStatuses.includes(status)) return;
+
+        applyLineStatus(lineId, status);
+
+        const adminState = loadAdminState();
+        if (status === state.adminOriginal[lineId].status) {
+          delete adminState.lines[lineId];
+        } else {
+          adminState.lines[lineId] = status;
+        }
+        saveAdminState(adminState);
+        renderCards();
+
+        const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+        showToast(`${line ? line.number : lineId}: ${statusOptions[status]}`, status === 'normal' ? 'success' : 'info');
+      });
+    }
+
+    if (fleetList) {
+      fleetList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-admin-bus]');
+        if (!btn || !isAdminLoggedIn() || !window.SimulationEngine) return;
+        const lineId = btn.dataset.adminBus;
+        const willPause = !SimulationEngine.isBusPaused(lineId);
+        SimulationEngine.setBusPaused(lineId, willPause);
+
+        const adminState = loadAdminState();
+        adminState.paused = adminState.paused.filter(id => id !== lineId);
+        if (willPause) adminState.paused.push(lineId);
+        saveAdminState(adminState);
+
+        renderAdminFleet();
+        const newBtn = fleetList.querySelector(`button[data-admin-bus="${lineId}"]`);
+        if (newBtn) newBtn.focus();
+
+        const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+        showToast(`${line ? line.busUnit : lineId} ${willPause ? 'pausado' : 'reanudado'}`, 'info');
+      });
+    }
+
+    if (speedGroup) {
+      speedGroup.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-admin-speed]');
+        if (!btn || !isAdminLoggedIn() || !window.SimulationEngine) return;
+        const speed = parseFloat(btn.dataset.adminSpeed);
+        if (!getAdminConfig().speeds.includes(speed)) return;
+
+        SimulationEngine.setTimeScale(speed);
+        const adminState = loadAdminState();
+        adminState.timeScale = speed;
+        saveAdminState(adminState);
+        renderAdminSpeed();
+        showToast(`Velocidad de simulación: x${speed}`, 'info');
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (!isAdminLoggedIn()) return;
+        const ok = window.confirm('¿Restablecer los datos de demo? Se perderán los estados de líneas, pausas y velocidad configurados.');
+        if (!ok) return;
+        localStorage.removeItem(ADMIN_STATE_KEY);
+        applyAdminStateToApp(loadAdminState());
+        renderAdminPanel();
+        renderCards();
+        showToast('Datos de demo restablecidos', 'success');
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem(ADMIN_SESSION_KEY);
+        closePanel();
+        updateAdminUI();
+        showToast('Sesión de administrador cerrada', 'info');
+      });
+    }
+
+    /* ---------- Disparadores del navbar ---------- */
+    if (loginBtn) loginBtn.addEventListener('click', openLogin);
+    if (panelBtn) panelBtn.addEventListener('click', openPanel);
+    if (mobileAdminBtn) {
+      mobileAdminBtn.addEventListener('click', () => {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        if (mobileMenu) mobileMenu.classList.add('hidden');
+        if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        if (isAdminLoggedIn()) openPanel(); else openLogin();
+      });
+    }
+
+    // Teclado: Escape cierra y Tab queda atrapado dentro del diálogo activo
+    window.addEventListener('keydown', (e) => {
+      const active = isOpen(loginModal) ? loginModal : isOpen(panel) ? panel : null;
+      if (!active) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDialog(active);
+      } else if (e.key === 'Tab') {
+        trapFocus(e, active);
+      }
+    });
+
+    // Sincronización entre pestañas del mismo navegador (sin backend no hay sync entre dispositivos)
+    window.addEventListener('storage', (e) => {
+      if (e.key === ADMIN_STATE_KEY) {
+        applyAdminStateToApp(loadAdminState());
+        renderCards();
+        if (isOpen(panel)) renderAdminPanel();
+      } else if (e.key === ADMIN_SESSION_KEY) {
+        updateAdminUI();
+      }
+    });
+
+    updateAdminUI();
   }
 
   /* ==========================================================================
