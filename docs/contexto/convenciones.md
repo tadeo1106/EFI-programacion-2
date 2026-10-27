@@ -17,59 +17,40 @@ Para asegurar accesibilidad, SEO local y código limpio, se aplican las siguient
 
 ---
 
-## 2. Paleta de Colores Institucional (Tailwind CSS)
-La paleta está calibrada para transmitir seguridad de transporte público y sustentabilidad ecológica, con soporte bimodal completo:
+## 2. Paleta de Colores y Arquitectura de Variables CSS (v2)
+La arquitectura de colores de la versión `v2` utiliza variables CSS en `:root` y `html.light` para una transición dinámica, fluida y sin parpadeos:
 
-```mermaid
-flowchart LR
-    subgraph Brand [Colores Principales]
-        Cobalto["Azul Cobalto (#1e3a8a / #2563eb)"]
-        Esmeralda["Verde Esmeralda (#10b981)"]
-    end
-    subgraph Status [Estados de Tráfico]
-        Ok["Verde Normal (#10b981)"]
-        Warn["Ámbar Demora (#f59e0b)"]
-        Danger["Rojo Desvío (#ef4444)"]
-    end
-    subgraph Themes [Superficies]
-        Dark["Slate 900 / 800 (#0f172a / #1e293b)"]
-        Light["Blanco / Slate 50 (#ffffff / #f8fafc)"]
-    end
-```
-
-### Clases Tailwind Correspondientes:
-* **Identidad Primaria**:
-  * Fondo primario: `bg-blue-900` (`#1e3a8a`), `bg-blue-600` (`#2563eb`), hover: `hover:bg-blue-700`.
-  * Texto primario de marca: `text-blue-600 dark:text-blue-400`.
-* **Identidad Secundaria (Sustentable / Éxito)**:
-  * Fondo secundario: `bg-emerald-500` (`#10b981`), `bg-emerald-600` (`#059669`).
-  * Badges de servicio normal: `bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20`.
-* **Alertas y Tráfico**:
-  * Demoras / Frecuencia reducida: `bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20`.
-  * Cortes / Desvíos / Cancelación: `bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20`.
 * **Modo Oscuro (Predeterminado)**:
-  * Fondo general: `bg-slate-900` (`#0f172a`).
-  * Contenedores y Tarjetas: `bg-slate-800/90 border border-slate-700/60`.
-  * Texto principal: `text-white` o `text-slate-100`.
-  * Texto secundario y leyendas: `text-slate-300` o `text-slate-400`.
+  * `--bg-primary: #0A0B0E` (Fondo ultra oscuro de cabina/noche).
+  * `--bg-secondary: #111318` (Superficies secundarias y footer).
+  * `--bg-glass: rgba(17, 19, 24, 0.75)` (Efecto cristal esmerilado con `backdrop-filter: blur(16px)`).
+  * `--text-primary: #F3F4F6` (Blanco roto de alto contraste).
+  * `--text-secondary: #9CA3AF` (Gris apagado para descripciones).
+  * `--accent: #2563EB` / `--accent-indigo: #4F46E5` (Acento azul cobalto con resplandor `btn-glow`).
+  * `--card-bg: rgba(17, 19, 24, 0.85)` y `--card-border: rgba(255, 255, 255, 0.08)`.
+  * `--border-color: #1F2937`.
 * **Modo Claro**:
-  * Fondo general: `bg-slate-50` (`#f8fafc`).
-  * Contenedores y Tarjetas: `bg-white border border-slate-200 shadow-sm`.
-  * Texto principal: `text-slate-900`.
-  * Texto secundario: `text-slate-600`.
+  * `--bg-primary: #F8F9FA` (Gris tenue limpio para descanso visual).
+  * `--bg-secondary: #FFFFFF` (Superficie pura).
+  * `--bg-glass: rgba(255, 255, 255, 0.85)`.
+  * `--text-primary: #0F172A` (Azul/gris carbón profundo).
+  * `--text-secondary: #475569` (Gris pizarra medio).
+  * `--card-bg: #FFFFFF` con sombra profunda difusa `0 20px 40px rgba(0,0,0,0.04)`.
+  * `--card-border: #E2E8F0` y `--border-color: #E2E8F0`.
 
 ---
 
 ## 3. Tipografía y Jerarquía Visual
 Importadas desde Google Fonts en el `<head>` del documento:
 
-* **Títulos y Marca (`font-heading`)**:
-  * Fuente: `'Poppins', sans-serif`.
-  * Pesos utilizados: `600 (SemiBold)` para subtítulos de tarjetas y badges; `700 (Bold)` y `800 (ExtraBold)` para encabezados de sección y título del Hero.
-* **Cuerpo de Texto y Tablas (`font-sans`)**:
+* **Títulos Display y Marca (`font-heading`)**:
+  * Fuente: `'Plus Jakarta Sans', sans-serif`.
+  * Pesos: `700 (Bold)` y `800 (ExtraBold)` con degradado sutil (`title-gradient`) de blanco a gris plata en modo oscuro, o de pizarra oscuro a medio en modo claro.
+* **Cuerpo de Texto y Datos (`font-sans`)**:
   * Fuente: `'Inter', sans-serif`.
-  * Pesos utilizados: `400 (Regular)` para descripciones de recorridos; `500 (Medium)` para etiquetas de formularios y listas de horarios.
-  * Interlineado amplio (`leading-relaxed`) para optimizar la lectura en pantallas móviles expuestas al sol.
+  * Pesos: `400 (Regular)`, `500 (Medium)` y `600 (SemiBold)` para datos tabulares, conteos y garitas.
+  * Interlineado holgado (`leading-relaxed`) para máxima legibilidad.
+
 
 ---
 
