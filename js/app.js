@@ -56,6 +56,91 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdmin();
   initLiveCountdown();
 
+function initPremium() {
+  const PREMIUM_STATE_KEY = 'busrio_premium';
+  const badge = document.getElementById('premium-badge');
+  const badgeMobile = document.getElementById('premium-badge-mobile');
+  
+  const modal = document.getElementById('premium-modal');
+  const modalBackdrop = document.getElementById('premium-modal-backdrop');
+  const activateBtn = document.getElementById('premium-activate-btn');
+  const deactivateBtn = document.getElementById('premium-deactivate-btn');
+  const closeBtn = document.getElementById('premium-close-btn');
+  let premiumLastFocus = null;
+
+  function loadPremiumState() { return localStorage.getItem(PREMIUM_STATE_KEY) === 'true'; }
+  function setPremiumState(active) { localStorage.setItem(PREMIUM_STATE_KEY, active ? 'true' : 'false'); }
+  function updateBadge() {
+    const isPremium = loadPremiumState();
+    const baseClass = 'ml-2 px-2 py-1 rounded text-xs flex items-center';
+    const premiumClass = 'bg-green-600 text-white';
+    const freeClass = 'bg-gray-600 text-white';
+    if (badge) {
+      // Preserve existing layout classes; only toggle premium/free colors
+      badge.classList.remove('bg-green-600', 'bg-gray-600');
+      badge.classList.add(isPremium ? 'bg-green-600' : 'bg-gray-600');
+      badge.innerHTML = (isPremium ? 'Premium ' : 'Gratis ') + '<i class="fa-solid fa-crown ml-1"></i>';
+    }
+    if (badgeMobile) {
+      // Preserve existing layout classes; only toggle premium/free colors
+      badgeMobile.classList.remove('bg-green-600', 'bg-gray-600');
+      badgeMobile.classList.add(isPremium ? 'bg-green-600' : 'bg-gray-600');
+      badgeMobile.innerHTML = (isPremium ? 'Premium ' : 'Gratis ') + '<i class="fa-solid fa-crown ml-1"></i>';
+    }
+  }
+
+  function openDialog(el, focusEl) {
+    premiumLastFocus = focusEl;
+    el.classList.remove('hidden');
+    el.removeAttribute('hidden');
+    document.body.classList.add('overflow-hidden');
+    setTimeout(() => { if (focusEl) focusEl.focus(); }, 30);
+  }
+  function closeDialog(el) {
+    el.classList.add('hidden');
+    el.setAttribute('hidden', '');
+    document.body.classList.remove('overflow-hidden');
+    if (premiumLastFocus) premiumLastFocus.focus();
+  }
+
+  // Open modal from badges
+  if (badge) badge.addEventListener('click', () => { openDialog(modal, badge); });
+  if (badgeMobile) badgeMobile.addEventListener('click', () => { openDialog(modal, badgeMobile); });
+
+  // Activate / deactivate
+  if (activateBtn) activateBtn.addEventListener('click', () => {
+    setPremiumState(true);
+    updateBadge();
+    closeDialog(modal);
+    if (deactivateBtn) deactivateBtn.classList.remove('hidden');
+    activateBtn.classList.add('hidden');
+    if (typeof showToast === 'function') showToast('Plan Premium activado', 'success');
+  });
+  if (deactivateBtn) deactivateBtn.addEventListener('click', () => {
+    setPremiumState(false);
+    updateBadge();
+    closeDialog(modal);
+    activateBtn.classList.remove('hidden');
+    deactivateBtn.classList.add('hidden');
+    if (typeof showToast === 'function') showToast('Plan Gratis restaurado', 'info');
+  });
+
+  // Close mechanisms
+  if (closeBtn) closeBtn.addEventListener('click', () => closeDialog(modal));
+  if (modalBackdrop) modalBackdrop.addEventListener('click', () => closeDialog(modal));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeDialog(modal); });
+
+  // Initialise UI
+  updateBadge();
+  if (loadPremiumState()) {
+    if (deactivateBtn) deactivateBtn.classList.remove('hidden');
+    if (activateBtn) activateBtn.classList.add('hidden');
+  } else {
+    if (activateBtn) activateBtn.classList.remove('hidden');
+    if (deactivateBtn) deactivateBtn.classList.add('hidden');
+  }
+}
+initPremium();
   /* ==========================================================================
      UTILIDADES DE NAVEGACIÓN Y ERGONOMÍA (OFFSET NAVBAR STICKY & SANITIZACIÓN)
      ========================================================================== */

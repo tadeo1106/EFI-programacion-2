@@ -4,7 +4,7 @@
  * Requisito E.F.I.: Network-First real con caché versionado.
  */
 
-const CACHE_NAME = 'busrio-cache-v2.5';
+const CACHE_NAME = 'busrio-cache-v2.6';
 const STATIC_ASSETS = [
   './',
   './index.html',

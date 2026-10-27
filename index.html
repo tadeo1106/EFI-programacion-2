@@ -82,7 +82,7 @@
         --bg-main: #0f111a;
         --bg-card: rgba(30, 41, 59, 0.90);
         --bg-card-subtle: rgba(21, 29, 42, 0.88);
-        --bg-overlay: rgba(15, 17, 26, 0.85);
+
         --border-color: #334155;
         --border-hover: #475569;
         --text-primary: #f8fafc;
@@ -102,7 +102,7 @@
         --bg-main: #faf9f6;
         --bg-card: rgba(255, 255, 255, 0.92);
         --bg-card-subtle: rgba(241, 245, 249, 0.88);
-        --bg-overlay: rgba(250, 249, 246, 0.86);
+
         --border-color: #e2e8f0;
         --border-hover: #cbd5e1;
         --text-primary: #0f172a;
@@ -119,19 +119,12 @@
 
       body {
         background-color: var(--bg-main);
-        background-image:
-          linear-gradient(var(--bg-overlay), var(--bg-overlay)),
-          url('Pegado%2024:10:2026%20a%20la(s)%2020.02.40.png');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        background-repeat: no-repeat;
         color: var(--text-primary);
         overflow-x: hidden;
-        transition:
-          background-color 0.2s ease,
-          color 0.2s ease;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        position: relative; /* for pseudo‑element */
       }
+
 
       /* En mobile usar scroll para evitar caídas de rendimiento con fixed */
       @media (max-width: 1023px) {
@@ -559,26 +552,29 @@
           >
             <i id="theme-icon" class="fa-solid fa-moon text-xs"></i>
           </button>
-          <!-- Admin Login Button (visible when not logged in) -->
-          <button
-            type="button"
-            id="admin-login-btn"
-            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
-            title="Acceso Administrador"
-            aria-label="Abrir login administrador"
-          >
-            <i class="fa-solid fa-user-shield text-xs"></i>
-          </button>
-          <!-- Admin Panel Button (visible after login) -->
-          <button
-            type="button"
-            id="admin-panel-btn"
-            class="hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
-            title="Panel Administrador"
-            aria-label="Abrir panel de administración"
-          >
-            <i class="fa-solid fa-tools text-xs"></i>
-          </button>
+          <div class="hidden lg:flex items-center gap-2">
+            <!-- Admin Login Button (visible when not logged in) -->
+            <button
+              type="button"
+              id="admin-login-btn"
+              class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+              title="Acceso Administrador"
+              aria-label="Abrir login administrador"
+            >
+              <i class="fa-solid fa-user-shield text-xs"></i>
+            </button>
+            <span id="premium-badge" class="px-2 py-1 rounded bg-gray-600 text-white text-xs flex items-center min-h-[44px] hidden md:inline-flex" aria-label="Estado del plan">Gratis <i class="fa-solid fa-crown ml-1"></i></span>
+            <!-- Admin Panel Button (visible after login) -->
+            <button
+              type="button"
+              id="admin-panel-btn"
+              class="hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+              title="Panel Administrador"
+              aria-label="Abrir panel de administración"
+            >
+              <i class="fa-solid fa-tools text-xs"></i>
+            </button>
+          </div>
 
           <!-- CTA Principal Amarillo Tránsito -->
           <a
@@ -647,6 +643,7 @@
         >
           <i class="fa-solid fa-user-shield text-xs"></i>
         </button>
+          <span id="premium-badge-mobile" class="ml-2 px-2 py-1 rounded bg-gray-600 text-white text-xs flex items-center min-h-[44px] md:hidden" aria-label="Estado del plan">Gratis <i class="fa-solid fa-crown ml-1"></i></span>
         </div>
       </div>
     </header>
@@ -654,7 +651,7 @@
     <main class="flex-grow">
       <!-- =========================================================================
          MONITOR DE COLECTIVOS EN TIEMPO REAL (MAPA FULL-VIEWPORT + PANEL LATERAL / BOTTOM SHEET)
-         ========================================================================= -->
+      ========================================================================= -->
       <section
         id="inicio"
         class="relative w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col lg:flex-row border-b border-[var(--border-color)]"
@@ -665,7 +662,7 @@
         <!-- PANEL DE LÍNEAS (Panel Lateral en Desktop / Bottom Sheet en Mobile) -->
         <aside
           id="monitor-list-col"
-          class="hidden lg:flex flex-col w-full lg:w-[380px] xl:w-[420px] h-auto max-h-[82vh] lg:max-h-none lg:h-full bg-[var(--bg-card)] backdrop-blur-md border-t lg:border-t-0 lg:border-r border-[var(--border-color)] z-[1040] lg:z-20 shrink-0 fixed inset-x-0 bottom-0 lg:static rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none transition-all duration-300"
+          class="hidden lg:flex flex-col w-full lg:w-[380px] xl:w-[420px] h-auto max-h-[82vh] lg:max-h-none lg:h-full bg-[var(--bg-card)] backdrop-blur-md border-t lg:border-t-0 lg:border-r border-[var(--border-color)] z-[1040] lg:z-20 shrink-0 fixed inset-x-0 bottom-0 lg:static lg:left-auto lg:right-auto lg:bottom-auto rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none transition-all duration-300"
         >
           <!-- Barra tirador de arrastre táctil (Solo Mobile) -->
           <div class="pt-2 pb-1 lg:hidden flex justify-center shrink-0">
@@ -851,7 +848,7 @@
         </div>
 
         <!-- Botón Conmutador Flotante Móvil (Lista / Mapa) -->
-        <div class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1050]">
+        <div class="lg:hidden fixed bottom-6 inset-x-0 flex justify-center z-[1050]">
           <button
             type="button"
             id="mobile-view-toggle"
@@ -864,7 +861,7 @@
       </section>
       <!-- =========================================================================
          SECCIÓN EQUIPO
-         ========================================================================= -->
+ 
       <section
         id="equipo"
         class="py-12 md:py-16 border-b border-[var(--border-color)]"
@@ -1163,9 +1160,56 @@
       </div>
     </div>
 
-    <!-- =========================================================================
-       MODAL DE DETALLES DE RECORRIDO (DRAWER UTILITARIO)
-       ========================================================================= -->
+    <!-- ========================================================================= -->
+<!-- Premium Plan Modal -->
+<div id="premium-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="premium-modal-title">
+  <div id="premium-modal-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] z-10">
+      <button type="button" id="premium-close-btn" aria-label="Cerrar" class="absolute top-2 right-2 text-xl">✕</button>
+      <h2 id="premium-modal-title" class="font-heading font-bold text-lg mb-4">Elegí tu plan</h2>
+      <p class="mb-2 text-sm">Viajá con más información</p>
+      <table class="w-full mb-4 border border-[var(--border-color)]">
+        <thead>
+          <tr class="bg-[var(--bg-main)]">
+            <th class="px-2 py-1 text-left"></th>
+            <th class="px-2 py-1 text-center">Gratis</th>
+            <th class="px-2 py-1 text-center">Premium</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="px-2 py-1">Alertas de llegada</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Favoritos ilimitados</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Mis recorridos</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Ocupación en vivo</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="text-xs text-gray-500 mb-3">Plan simulado para fines educativos. No se realiza ningún cobro.</p>
+      <div class="flex justify-end space-x-2">
+        <button id="premium-activate-btn" class="px-4 py-2 rounded bg-green-600 text-white border border-green-700">Hacerme Premium</button>
+        <button id="premium-deactivate-btn" class="px-4 py-2 rounded bg-gray-600 text-white border border-gray-700 hidden">Volver al plan gratis</button>
+      </div>
+    </div>
+  </div>
+</div>
+               <!-- MODAL DE DETALLES DE RECORRIDO (DRAWER UTILITARIO) -->
+       
     <div
       id="route-modal"
       hidden
