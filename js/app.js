@@ -425,9 +425,18 @@ initPremiumRoutes();
     });
 
     // Cambio de plan desde el modal (misma pestaña) o desde otra pestaña
-    document.addEventListener('busrio:plan-change', updateRoutesUI);
+    document.addEventListener('busrio:plan-change', () => {
+      updateRoutesUI();
+      renderCards();
+    });
+    document.addEventListener('busrio:occupancy-change', () => {
+      renderCards();
+    });
     window.addEventListener('storage', (e) => {
-      if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ROUTES_KEY) updateRoutesUI();
+      if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ROUTES_KEY) {
+        updateRoutesUI();
+        if (e.key === PREMIUM_STATE_KEY) renderCards();
+      }
     });
 
     updateRoutesUI();
@@ -1136,6 +1145,35 @@ initPremiumRoutes();
       statusText = 'Desvío';
     }
 
+    // Ocupación en vivo (Premium) vs Estado bloqueado con candado (Plan Gratis)
+    const hasPremium = isPremium();
+    const occupancy = (window.SimulationEngine && typeof window.SimulationEngine.getOccupancy === 'function')
+      ? window.SimulationEngine.getOccupancy(line.id)
+      : 'Medio';
+
+    let occupancyBadgeHTML = '';
+    if (hasPremium) {
+      const occClass = occupancy === 'Vacío' ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+        : occupancy === 'Lleno' ? 'text-rose-700 dark:text-rose-400 bg-rose-500/10 border-rose-500/30'
+        : 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/30';
+      const occIcon = occupancy === 'Vacío' ? 'fa-solid fa-user'
+        : occupancy === 'Lleno' ? 'fa-solid fa-users'
+        : 'fa-solid fa-user-group';
+      occupancyBadgeHTML = `
+        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold border ${occClass}" title="Ocupación en vivo: ${occupancy}">
+          <i class="${occIcon} text-[9px]"></i>
+          <span>${occupancy}</span>
+        </span>
+      `;
+    } else {
+      occupancyBadgeHTML = `
+        <button type="button" id="premium-occupancy-card-${line.id}" class="premium-occupancy-lock-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold border border-dashed border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer" aria-label="Ocupación en vivo requiere plan Premium. Ver planes" title="Ocupación en vivo: disponible en Premium">
+          <i class="fa-solid fa-lock text-[9px]"></i>
+          <span>Premium</span>
+        </button>
+      `;
+    }
+
     article.innerHTML = `
       <!-- Fila 1: Línea Badge + Nombre + Favorito + ETA Monospace -->
       <div class="flex items-center justify-between gap-2 mb-2">
@@ -1168,12 +1206,13 @@ initPremiumRoutes();
         <span class="truncate font-sans">Garita: <strong class="text-[var(--text-primary)] font-medium">${line.stopName}</strong></span>
       </div>
 
-      <!-- Fila 3: Estado y Botones de Acción -->
+      <!-- Fila 3: Estado, Ocupación y Botones de Acción -->
       <div class="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] font-mono text-[11px]">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 flex-wrap">
           <span class="px-2 py-0.5 rounded font-mono text-[10px] font-semibold ${statusBadgeColor}">
             ${statusText}
           </span>
+          ${occupancyBadgeHTML}
           ${line.accessible ? `
             <span class="text-[var(--accent-transit)] text-xs" title="Unidad con rampa accesible">
               <i class="fa-solid fa-wheelchair"></i>
@@ -1203,6 +1242,15 @@ initPremiumRoutes();
       });
     }
 
+    // Clic en candado de ocupación para abrir el modal de Premium
+    const lockBtn = article.querySelector('.premium-occupancy-lock-btn');
+    if (lockBtn) {
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: lockBtn } }));
+      });
+    }
+
     // Clic en toda la tarjeta selecciona la línea en el mapa
     article.addEventListener('click', (e) => {
       if (e.target.closest('.view-route-btn')) {
@@ -1210,6 +1258,9 @@ initPremiumRoutes();
         return;
       }
       if (e.target.closest('.btn-fav')) {
+        return;
+      }
+      if (e.target.closest('.premium-occupancy-lock-btn')) {
         return;
       }
       focusLineOnMap(line, true);
@@ -1333,7 +1384,10 @@ initPremiumRoutes();
     });
 
     // Inicializar Telemetría de Colectivos en Movimiento
-    if (window.SimulationEngine) { SimulationEngine.init(state.map, BUSRIO_DATA.lines); }
+    if (window.SimulationEngine) {
+      SimulationEngine.init(state.map, BUSRIO_DATA.lines);
+      renderCards();
+    }
 
     // Botón de Recentrado
     const resetViewBtn = document.getElementById('map-reset-btn');

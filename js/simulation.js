@@ -87,6 +87,8 @@ const SimulationEngine = (function() {
   
   // Estado interno de los buses
   const buses = {}; 
+  const OCCUPANCY_LEVELS = ['Vacío', 'Medio', 'Lleno'];
+  let occupancyInterval = null;
 
   
   // --- Validación Anti-Agua ---
@@ -166,10 +168,12 @@ const SimulationEngine = (function() {
 
     
     // Crear estado inicial para cada colectivo
-    linesData.forEach(line => {
+    linesData.forEach((line, idx) => {
       const totalLength = getPathLength(line.routeCoords);
       // Iniciar en una posición aleatoria para distribuir los buses
       const startDist = Math.random() * totalLength;
+      // Nivel de ocupación inicial guardado SOLO en memoria ('Vacío', 'Medio' o 'Lleno')
+      const initialOccupancy = OCCUPANCY_LEVELS[idx % OCCUPANCY_LEVELS.length];
       
       buses[line.id] = {
         id: line.id,
@@ -182,7 +186,8 @@ const SimulationEngine = (function() {
         speedKmH: line.speed || 30, // km/h
         marker: null,
         following: false,
-        paused: false // Controlado desde el Panel de Administración
+        paused: false, // Controlado desde el Panel de Administración
+        occupancy: initialOccupancy
       };
 
       // Crear el marcador
@@ -211,8 +216,21 @@ const SimulationEngine = (function() {
         </div>
       `);
 
+      // Asegurar actualización inmediata al abrir popup
+      buses[line.id].marker.on('popupopen', () => {
+        updatePopup(buses[line.id]);
+      });
+
       applyMarkerIndicator(buses[line.id]);
     });
+
+    // Evitar que el intervalo se duplique si la simulación se reinicia
+    if (occupancyInterval) {
+      clearInterval(occupancyInterval);
+      occupancyInterval = null;
+    }
+    // Cada ~30 segundos cada colectivo puede cambiar de nivel de forma gradual
+    occupancyInterval = setInterval(updateOccupancies, 30000);
 
     // Iniciar loop a 60fps aprox (16ms)
     lastTick = performance.now();
@@ -292,6 +310,33 @@ const SimulationEngine = (function() {
     simulationLoop = requestAnimationFrame(tick);
   }
 
+  // Variación gradual de ocupación cada ~30 segundos (solo en memoria)
+  function updateOccupancies() {
+    let anyChanged = false;
+    Object.values(buses).forEach(bus => {
+      const currentIdx = OCCUPANCY_LEVELS.indexOf(bus.occupancy);
+      const idx = currentIdx >= 0 ? currentIdx : 1;
+      // Variación aleatoria simple: -1 (baja), 0 (se mantiene), +1 (sube)
+      // Garantiza transición gradual (Vacío <-> Medio <-> Lleno, sin saltar de un extremo al otro)
+      const delta = Math.floor(Math.random() * 3) - 1;
+      const newIdx = Math.max(0, Math.min(OCCUPANCY_LEVELS.length - 1, idx + delta));
+      const newOccupancy = OCCUPANCY_LEVELS[newIdx];
+
+      if (newOccupancy !== bus.occupancy) {
+        bus.occupancy = newOccupancy;
+        anyChanged = true;
+        // Si el popup de este colectivo está abierto, se actualiza en vivo al cambiar el nivel
+        if (bus.marker && bus.marker.isPopupOpen()) {
+          updatePopup(bus);
+        }
+      }
+    });
+
+    if (anyChanged) {
+      document.dispatchEvent(new CustomEvent('busrio:occupancy-change'));
+    }
+  }
+
   function updatePopup(bus) {
     const popupEl = document.getElementById(`popup-${bus.id}`);
     if (!popupEl) return;
@@ -301,6 +346,32 @@ const SimulationEngine = (function() {
       : bus.state === 'Demorado' ? 'text-amber-500'
       : bus.state === 'Desviado' ? 'text-rose-500'
       : 'text-emerald-500';
+
+    const isPrem = typeof window.isPremium === 'function' ? window.isPremium() : (localStorage.getItem('busrio_premium') === 'true');
+    const occ = bus.occupancy || 'Medio';
+
+    let occupancyHTML = '';
+    if (isPrem) {
+      const occClass = occ === 'Vacío' ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+        : occ === 'Lleno' ? 'text-rose-700 dark:text-rose-400 bg-rose-500/10 border-rose-500/30'
+        : 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/30';
+      const occIcon = occ === 'Vacío' ? 'fa-solid fa-user'
+        : occ === 'Lleno' ? 'fa-solid fa-users'
+        : 'fa-solid fa-user-group';
+      occupancyHTML = `
+        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] font-bold border ${occClass}" title="Ocupación: ${occ}">
+          <i class="${occIcon} text-[9px]"></i>
+          <span>${occ}</span>
+        </span>
+      `;
+    } else {
+      occupancyHTML = `
+        <button type="button" id="premium-occupancy-popup-${bus.id}" onclick="SimulationEngine.openPremiumModal(this)" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] font-bold border border-dashed border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer" aria-label="Ocupación en vivo requiere plan Premium. Ver planes" title="Ocupación en vivo: disponible en Premium">
+          <i class="fa-solid fa-lock text-[9px]"></i>
+          <span>Premium</span>
+        </button>
+      `;
+    }
     
     popupEl.innerHTML = `
       <div class="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-1 mb-2">
@@ -311,7 +382,7 @@ const SimulationEngine = (function() {
         <div class="flex justify-between"><span>Estado:</span> <strong class="${stateClass}">${stateText}</strong></div>
         <div class="flex justify-between"><span>Vel. Sim.:</span> <strong class="font-mono">${bus.paused ? '0.0' : (bus.speedKmH * timeScale).toFixed(1)} km/h</strong></div>
         <div class="flex justify-between"><span>Sentido:</span> <strong class="text-[var(--text-primary)]">${bus.direction === 1 ? 'Ida' : 'Vuelta'}</strong></div>
-        <div class="flex justify-between"><span>Ocupación:</span> <strong class="text-[var(--text-primary)]">${bus.lineObj.capacity || 'Media'}</strong></div>
+        <div class="flex justify-between items-center"><span>Ocupación:</span> ${occupancyHTML}</div>
       </div>
       <div class="mt-2 pt-2 border-t border-[var(--border-color)]">
         <button onclick="SimulationEngine.toggleFollow('${bus.id}')" class="w-full py-1 text-[10px] font-bold rounded bg-[var(--bg-card-hover)] hover:bg-[var(--accent-transit)] hover:text-slate-900 transition-colors border border-[var(--border-color)]">
@@ -384,14 +455,57 @@ const SimulationEngine = (function() {
     return !!(buses[lineId] && buses[lineId].paused);
   }
 
+  function getOccupancy(lineId) {
+    if (buses[lineId] && buses[lineId].occupancy) {
+      return buses[lineId].occupancy;
+    }
+    return 'Medio';
+  }
+
+  function openPremiumModal(triggerEl) {
+    document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: triggerEl || null } }));
+  }
+
+  function stop() {
+    if (simulationLoop) {
+      cancelAnimationFrame(simulationLoop);
+      simulationLoop = null;
+    }
+    if (occupancyInterval) {
+      clearInterval(occupancyInterval);
+      occupancyInterval = null;
+    }
+  }
+
+  // Actualizar popups abiertos en vivo cuando cambie el plan (sin recargar)
+  document.addEventListener('busrio:plan-change', () => {
+    Object.values(buses).forEach(bus => {
+      if (bus.marker && bus.marker.isPopupOpen()) {
+        updatePopup(bus);
+      }
+    });
+  });
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'busrio_premium') {
+      Object.values(buses).forEach(bus => {
+        if (bus.marker && bus.marker.isPopupOpen()) {
+          updatePopup(bus);
+        }
+      });
+    }
+  });
+
   return {
     init,
+    stop,
     setTimeScale,
     getTimeScale,
     toggleFollow,
     setLineStatus,
     setBusPaused,
-    isBusPaused
+    isBusPaused,
+    getOccupancy,
+    openPremiumModal
   };
 })();
 
