@@ -716,6 +716,38 @@
             </div>
           </div>
 
+          <!-- MIS RECORRIDOS (Premium simulado): bloqueado en plan gratis, lista + alta en Premium -->
+          <div id="premium-routes-section" class="shrink-0 px-3 py-2.5 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-heading font-bold text-xs uppercase tracking-wide text-[var(--text-primary)] flex items-center gap-1.5">
+                <i class="fa-solid fa-route text-[var(--accent-transit)] text-[11px]"></i>
+                Mis recorridos
+              </h3>
+              <button
+                type="button"
+                id="premium-new-route-btn"
+                class="hidden min-h-[44px] px-3 rounded-lg bg-[var(--accent-transit)] text-slate-950 font-mono font-bold text-[11px] items-center gap-1.5 hover:bg-[var(--accent-transit-hover)] transition-all"
+                aria-label="Crear nuevo recorrido"
+              >
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Nuevo recorrido</span>
+              </button>
+            </div>
+            <!-- Estado bloqueado (plan gratis) -->
+            <button
+              type="button"
+              id="premium-routes-locked"
+              class="mt-2 w-full min-h-[44px] px-3 rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:border-[var(--accent-transit)] font-mono text-[11px] flex items-center justify-center gap-2 transition-all"
+              aria-label="Mis recorridos es una función Premium. Ver planes"
+            >
+              <i class="fa-solid fa-lock text-amber-400"></i>
+              <span class="font-bold text-amber-400">Premium</span>
+              <span>· Guardá tus recorridos frecuentes</span>
+            </button>
+            <!-- Lista de recorridos guardados (solo Premium) -->
+            <ul id="premium-routes-list" class="hidden mt-2 space-y-1.5 max-h-36 overflow-y-auto scrollbar-transit" aria-label="Recorridos guardados"></ul>
+          </div>
+
           <!-- Contenedor Scrollable de Tarjetas -->
           <div
             id="lines-scroll-container"
@@ -861,7 +893,7 @@
       </section>
       <!-- =========================================================================
          SECCIÓN EQUIPO
- 
+     ========================================================================= -->
       <section
         id="equipo"
         class="py-12 md:py-16 border-b border-[var(--border-color)]"
@@ -1208,6 +1240,43 @@
     </div>
   </div>
 </div>
+    <!-- MODAL NUEVO RECORRIDO (Premium simulado: Mis recorridos) -->
+    <div id="premium-route-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="premium-route-modal-title" hidden>
+      <div id="premium-route-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] text-[var(--text-primary)] p-5 sm:p-6 border border-[var(--border-color)] z-10 shadow-2xl">
+          <button type="button" id="premium-route-close-btn" class="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-main)]" aria-label="Cerrar formulario de recorrido">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <h2 id="premium-route-modal-title" class="font-heading font-bold text-lg mb-4 pr-10">Nuevo recorrido</h2>
+          <form id="premium-route-form" class="space-y-3" novalidate>
+            <div>
+              <label for="premium-route-name" class="block text-xs font-mono font-bold mb-1">Nombre del recorrido</label>
+              <input id="premium-route-name" type="text" maxlength="40" placeholder="Ej: Casa → Facultad" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Nombre del recorrido">
+            </div>
+            <div>
+              <label for="premium-route-line" class="block text-xs font-mono font-bold mb-1">Línea</label>
+              <select id="premium-route-line" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Línea del recorrido"></select>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="premium-route-origin" class="block text-xs font-mono font-bold mb-1">Parada de origen</label>
+                <select id="premium-route-origin" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Parada de origen"></select>
+              </div>
+              <div>
+                <label for="premium-route-destination" class="block text-xs font-mono font-bold mb-1">Parada de destino</label>
+                <select id="premium-route-destination" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Parada de destino"></select>
+              </div>
+            </div>
+            <p id="premium-route-error" class="hidden text-sm text-red-500 font-medium" role="alert" aria-live="assertive"></p>
+            <div class="flex justify-end gap-2 pt-1">
+              <button type="button" id="premium-route-cancel-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-sm" aria-label="Cancelar">Cancelar</button>
+              <button type="submit" id="premium-route-save-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--accent-transit)] text-slate-950 font-bold text-sm" aria-label="Guardar recorrido">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
                <!-- MODAL DE DETALLES DE RECORRIDO (DRAWER UTILITARIO) -->
        
     <div

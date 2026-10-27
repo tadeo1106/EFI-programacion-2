@@ -21,6 +21,19 @@ const ADMIN_CREDENTIALS = Object.freeze({
 const ADMIN_SESSION_KEY = 'busrio_admin';
 const ADMIN_STATE_KEY = 'busrio_admin_state';
 
+/* ==========================================================================
+   💎 PLAN PREMIUM SIMULADO (SOLO FRONTEND - SIN COBRO NI BACKEND)
+   Estado del plan, límite de favoritos y recorridos guardados en localStorage.
+   ========================================================================== */
+const PREMIUM_STATE_KEY = 'busrio_premium';
+const PREMIUM_ROUTES_KEY = 'busrio_premium_routes';
+const FREE_FAVORITES_LIMIT = 3;
+
+// Única fuente de verdad del plan: la usan initPremium, favoritos y Mis recorridos
+function isPremium() {
+  return localStorage.getItem(PREMIUM_STATE_KEY) === 'true';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Estado central de la aplicación
   const state = {
@@ -57,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initLiveCountdown();
 
 function initPremium() {
-  const PREMIUM_STATE_KEY = 'busrio_premium';
   const badge = document.getElementById('premium-badge');
   const badgeMobile = document.getElementById('premium-badge-mobile');
   
@@ -68,8 +80,13 @@ function initPremium() {
   const closeBtn = document.getElementById('premium-close-btn');
   let premiumLastFocus = null;
 
-  function loadPremiumState() { return localStorage.getItem(PREMIUM_STATE_KEY) === 'true'; }
-  function setPremiumState(active) { localStorage.setItem(PREMIUM_STATE_KEY, active ? 'true' : 'false'); }
+  // Lectura del plan delegada a la función global isPremium() (sin duplicar lógica)
+  const loadPremiumState = isPremium;
+  function setPremiumState(active) {
+    localStorage.setItem(PREMIUM_STATE_KEY, active ? 'true' : 'false');
+    // Aviso al resto de la UI (favoritos, Mis recorridos) para refrescar sin recargar
+    document.dispatchEvent(new CustomEvent('busrio:plan-change', { detail: { premium: active } }));
+  }
   function updateBadge() {
     const isPremium = loadPremiumState();
     const baseClass = 'ml-2 px-2 py-1 rounded text-xs flex items-center';
@@ -130,6 +147,13 @@ function initPremium() {
   if (modalBackdrop) modalBackdrop.addEventListener('click', () => closeDialog(modal));
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeDialog(modal); });
 
+  // Apertura del modal de plan desde otras partes de la UI (límite de favoritos, Mis recorridos)
+  document.addEventListener('busrio:open-premium', (e) => {
+    if (!modal) return;
+    const trigger = (e.detail && e.detail.trigger) || document.activeElement;
+    openDialog(modal, trigger);
+  });
+
   // Initialise UI
   updateBadge();
   if (loadPremiumState()) {
@@ -141,6 +165,273 @@ function initPremium() {
   }
 }
 initPremium();
+initPremiumRoutes();
+
+  /* ==========================================================================
+     💎 MIS RECORRIDOS (PREMIUM SIMULADO)
+     Plan gratis: sección bloqueada (candado) que abre #premium-modal.
+     Premium: alta en modal, lista con borrar y trazado en el mapa.
+     Las rutas se conservan en localStorage aunque se vuelva al plan gratis.
+     ========================================================================== */
+  function initPremiumRoutes() {
+    const newBtn = document.getElementById('premium-new-route-btn');
+    const lockedBtn = document.getElementById('premium-routes-locked');
+    const list = document.getElementById('premium-routes-list');
+    const modal = document.getElementById('premium-route-modal');
+    const backdrop = document.getElementById('premium-route-backdrop');
+    const closeBtn = document.getElementById('premium-route-close-btn');
+    const cancelBtn = document.getElementById('premium-route-cancel-btn');
+    const form = document.getElementById('premium-route-form');
+    const nameInput = document.getElementById('premium-route-name');
+    const lineSelect = document.getElementById('premium-route-line');
+    const originSelect = document.getElementById('premium-route-origin');
+    const destSelect = document.getElementById('premium-route-destination');
+    const errorEl = document.getElementById('premium-route-error');
+    let routeLastFocus = null;
+
+    function loadRoutes() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(PREMIUM_ROUTES_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function saveRoutes(routes) {
+      localStorage.setItem(PREMIUM_ROUTES_KEY, JSON.stringify(routes));
+    }
+
+    function makeOption(value, label) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      return opt;
+    }
+
+    function fillLineSelect() {
+      if (!lineSelect) return;
+      lineSelect.innerHTML = '';
+      lineSelect.appendChild(makeOption('', 'Elegí una línea'));
+      BUSRIO_DATA.lines.forEach(line => {
+        lineSelect.appendChild(makeOption(line.id, `${line.number} — ${line.name}`));
+      });
+    }
+
+    function fillStopSelects(lineId) {
+      const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+      const stops = line && Array.isArray(line.stopsList) ? line.stopsList : [];
+      [originSelect, destSelect].forEach(sel => {
+        if (!sel) return;
+        sel.innerHTML = '';
+        sel.appendChild(makeOption('', line ? 'Elegí una parada' : 'Primero elegí una línea'));
+        stops.forEach(stop => sel.appendChild(makeOption(stop, stop)));
+        sel.disabled = !line;
+      });
+    }
+
+    function clearError() {
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.classList.add('hidden');
+      }
+      [nameInput, lineSelect, originSelect, destSelect].forEach(el => {
+        if (el) el.removeAttribute('aria-invalid');
+      });
+    }
+
+    function showError(message, field) {
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+      }
+      if (field) {
+        field.setAttribute('aria-invalid', 'true');
+        field.focus();
+      }
+    }
+
+    function isModalOpen() {
+      return !!modal && !modal.classList.contains('hidden');
+    }
+
+    function openRouteModal() {
+      if (!modal) return;
+      if (!isPremium()) {
+        document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: lockedBtn } }));
+        return;
+      }
+      routeLastFocus = document.activeElement;
+      if (form) form.reset();
+      fillLineSelect();
+      fillStopSelects('');
+      clearError();
+      modal.classList.remove('hidden');
+      modal.removeAttribute('hidden');
+      document.body.classList.add('overflow-hidden');
+      setTimeout(() => { if (nameInput) nameInput.focus(); }, 30);
+    }
+
+    function closeRouteModal() {
+      if (!isModalOpen()) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('hidden', '');
+      document.body.classList.remove('overflow-hidden');
+      if (routeLastFocus && typeof routeLastFocus.focus === 'function') routeLastFocus.focus();
+    }
+
+    function renderRoutes() {
+      if (!list) return;
+      list.innerHTML = '';
+      const routes = loadRoutes();
+
+      if (routes.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'text-[11px] font-mono text-[var(--text-muted)] px-1 py-1';
+        empty.textContent = 'Todavía no guardaste recorridos.';
+        list.appendChild(empty);
+        return;
+      }
+
+      routes.forEach(route => {
+        const line = BUSRIO_DATA.lines.find(l => l.id === route.lineId);
+        const li = document.createElement('li');
+        li.className = 'flex items-stretch gap-1.5';
+
+        const traceBtn = document.createElement('button');
+        traceBtn.type = 'button';
+        traceBtn.className = 'flex-1 min-w-0 min-h-[44px] text-left px-2.5 py-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] hover:border-[var(--accent-transit)] transition-all';
+        traceBtn.setAttribute('aria-label', `Trazar recorrido ${route.name} en el mapa`);
+        const title = document.createElement('span');
+        title.className = 'block text-xs font-bold text-[var(--text-primary)] truncate';
+        title.textContent = route.name;
+        const detail = document.createElement('span');
+        detail.className = 'block text-[10px] font-mono text-[var(--text-muted)] truncate';
+        detail.textContent = `${line ? line.number : 'Línea no disponible'} · ${route.origin} → ${route.destination}`;
+        traceBtn.append(title, detail);
+        traceBtn.addEventListener('click', () => {
+          if (line) {
+            focusLineOnMap(line, true); // Reutiliza el mismo trazado que el botón "Trazar"
+          } else {
+            showToast('La línea de este recorrido ya no está disponible', 'error');
+          }
+        });
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-red-500 hover:border-red-500 transition-all';
+        deleteBtn.setAttribute('aria-label', `Borrar recorrido ${route.name}`);
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+        deleteBtn.addEventListener('click', () => {
+          saveRoutes(loadRoutes().filter(r => r.id !== route.id));
+          renderRoutes();
+          showToast(`Recorrido "${route.name}" borrado`, 'info');
+        });
+
+        li.append(traceBtn, deleteBtn);
+        list.appendChild(li);
+      });
+    }
+
+    // Sincroniza la sección con el plan actual (sin recargar)
+    function updateRoutesUI() {
+      const premium = isPremium();
+      if (newBtn) {
+        newBtn.classList.toggle('hidden', !premium);
+        newBtn.classList.toggle('flex', premium);
+      }
+      if (lockedBtn) lockedBtn.classList.toggle('hidden', premium);
+      if (list) {
+        // En plan gratis las rutas se conservan en localStorage, pero quedan ocultas
+        list.classList.toggle('hidden', !premium);
+        if (premium) renderRoutes(); else list.innerHTML = '';
+      }
+      if (!premium) closeRouteModal();
+    }
+
+    /* ---------- Listeners (protegidos ante elementos faltantes) ---------- */
+    if (newBtn) newBtn.addEventListener('click', openRouteModal);
+    if (lockedBtn) {
+      lockedBtn.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: lockedBtn } }));
+      });
+    }
+    if (closeBtn) closeBtn.addEventListener('click', closeRouteModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeRouteModal);
+    if (backdrop) backdrop.addEventListener('click', closeRouteModal);
+    if (lineSelect) {
+      lineSelect.addEventListener('change', () => {
+        fillStopSelects(lineSelect.value);
+        clearError();
+      });
+    }
+
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearError();
+        if (!isPremium()) {
+          closeRouteModal();
+          document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: lockedBtn } }));
+          return;
+        }
+
+        const name = nameInput ? nameInput.value.trim() : '';
+        const lineId = lineSelect ? lineSelect.value : '';
+        const origin = originSelect ? originSelect.value : '';
+        const destination = destSelect ? destSelect.value : '';
+
+        if (!name) return showError('Ingresá un nombre para el recorrido.', nameInput);
+        if (!lineId) return showError('Elegí una línea.', lineSelect);
+        if (!origin) return showError('Elegí la parada de origen.', originSelect);
+        if (!destination) return showError('Elegí la parada de destino.', destSelect);
+        if (origin === destination) return showError('El origen y el destino tienen que ser paradas distintas.', destSelect);
+
+        const routes = loadRoutes();
+        routes.push({
+          id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          name,
+          lineId,
+          origin,
+          destination,
+          createdAt: new Date().toISOString()
+        });
+        saveRoutes(routes);
+        closeRouteModal();
+        renderRoutes();
+        showToast(`Recorrido "${name}" guardado`, 'success');
+      });
+    }
+
+    // Escape cierra y Tab queda atrapado dentro del modal mientras está abierto
+    window.addEventListener('keydown', (e) => {
+      if (!isModalOpen()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeRouteModal();
+      } else if (e.key === 'Tab') {
+        const focusables = Array.from(modal.querySelectorAll('button, input, select')).filter(el => !el.disabled);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    // Cambio de plan desde el modal (misma pestaña) o desde otra pestaña
+    document.addEventListener('busrio:plan-change', updateRoutesUI);
+    window.addEventListener('storage', (e) => {
+      if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ROUTES_KEY) updateRoutesUI();
+    });
+
+    updateRoutesUI();
+  }
   /* ==========================================================================
      UTILIDADES DE NAVEGACIÓN Y ERGONOMÍA (OFFSET NAVBAR STICKY & SANITIZACIÓN)
      ========================================================================== */
@@ -791,7 +1082,7 @@ initPremium();
     });
   }
 
-  function toggleFavorite(lineId) {
+  function toggleFavorite(lineId, triggerEl = null) {
     const idx = state.favorites.indexOf(lineId);
     const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
     const lineName = line ? line.number : lineId;
@@ -800,6 +1091,18 @@ initPremium();
       state.favorites.splice(idx, 1);
       showToast(`${lineName} quitada de favoritos`, 'info');
     } else {
+      // Plan gratis: máximo FREE_FAVORITES_LIMIT. Si ya tenía más (bajó de Premium) se conservan,
+      // pero no se pueden agregar nuevos hasta quedar por debajo del límite.
+      if (!isPremium() && state.favorites.length >= FREE_FAVORITES_LIMIT) {
+        showToast(`Plan Gratis: máximo ${FREE_FAVORITES_LIMIT} favoritos`, 'info', {
+          label: 'Ver Premium',
+          ariaLabel: 'Ver plan Premium para favoritos ilimitados',
+          onClick: () => {
+            document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: triggerEl } }));
+          }
+        });
+        return;
+      }
       state.favorites.push(lineId);
       showToast(`${lineName} guardada en favoritos ⭐`, 'success');
     }
@@ -896,7 +1199,7 @@ initPremium();
     if (favBtn) {
       favBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        toggleFavorite(line.id);
+        toggleFavorite(line.id, favBtn);
       });
     }
 
@@ -1759,7 +2062,7 @@ initPremium();
   /* ==========================================================================
      10. TOASTS RESPONSIVOS Y UTILITARIOS
      ========================================================================== */
-  function showToast(message, type = 'success') {
+  function showToast(message, type = 'success', action = null) {
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
@@ -1786,6 +2089,22 @@ initPremium();
       </button>
     `;
 
+    // Acción opcional (ej.: "Ver Premium" al alcanzar el límite de favoritos)
+    if (action && action.label && typeof action.onClick === 'function') {
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = 'toast-action-btn shrink-0 min-h-[44px] px-3 rounded-lg bg-amber-400 text-slate-950 font-mono font-bold text-[11px] flex items-center gap-1.5 hover:bg-amber-300';
+      actionBtn.setAttribute('aria-label', action.ariaLabel || action.label);
+      actionBtn.innerHTML = '<i class="fa-solid fa-crown text-[10px]"></i>';
+      actionBtn.appendChild(document.createTextNode(action.label));
+      actionBtn.addEventListener('click', () => {
+        action.onClick();
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 200);
+      });
+      toast.insertBefore(actionBtn, toast.querySelector('.toast-close-btn'));
+    }
+
     container.appendChild(toast);
 
     const closeBtn = toast.querySelector('.toast-close-btn');
@@ -1805,7 +2124,7 @@ initPremium();
         toast.classList.add('translate-y-2', 'opacity-0');
         setTimeout(() => toast.remove(), 200);
       }
-    }, 3000);
+    }, action ? 6000 : 3000);
   }
 
   /* ==========================================================================
