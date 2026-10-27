@@ -1,738 +1,1573 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es" class="dark scroll-smooth">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BusRío - Monitor interactivo y progresivo de transporte urbano en tiempo real para la ciudad de Río Cuarto. Consulta paradas, recorridos, frecuencias y alertas ciudadanas.">
-  <meta name="theme-color" content="#0f172a">
-  <title>BusRío - Monitor Urbano de Colectivos | Río Cuarto</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="BusRío - Monitor utilitario de tránsito urbano en tiempo real para Río Cuarto. Consulta de frecuencias, garitas y cartografía de ramales en vivo."
+    />
+    <meta name="theme-color" content="#0F111A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BusRío" />
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <title>BusRío | Centro de Tránsito Urbano · Río Cuarto</title>
 
-  <!-- Script anti-FOUT para Modo Oscuro/Claro (Gotcha 7 - errores-conocidos.md) -->
-  <script>
-    if (localStorage.getItem('busrio_theme') === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
-  </script>
+    <!-- Script anti-FOUT para Modo Oscuro (Predeterminado) y Modo Claro -->
+    <script>
+      (function () {
+        const savedTheme = localStorage.getItem("busrio_theme");
+        if (savedTheme === "light") {
+          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.add("light");
+        } else {
+          document.documentElement.classList.add("dark");
+          document.documentElement.classList.remove("light");
+        }
+      })();
+    </script>
 
-  <!-- Google Fonts: Poppins (Títulos) & Inter (Cuerpo) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Outfit (Títulos) + Plus Jakarta Sans (Cuerpo) + Fira Code (Datos) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- FontAwesome 6 Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
 
-  <!-- TailwindCSS v3 CDN y Configuración Corporativa -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              cobalt: '#1e3a8a',
-              blue: '#2563eb',
-              lightBlue: '#3b82f6',
-              emerald: '#10b981',
-              emeraldDark: '#059669',
-              amber: '#f59e0b',
-              rose: '#ef4444',
-              darkBg: '#0f172a',
-              cardDark: '#1e293b'
-            }
+    <!-- TailwindCSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              heading: ['"Outfit"', "sans-serif"],
+              sans: ['"Plus Jakarta Sans"', "sans-serif"],
+              mono: ['"Fira Code"', "monospace"],
+            },
+            colors: {
+              transit: {
+                amber: "#F59E0B",
+                amberHover: "#D97706",
+                dark: "#0F111A",
+                card: "#1E293B",
+                border: "#334155",
+              },
+            },
           },
-          fontFamily: {
-            heading: ['Poppins', 'sans-serif'],
-            sans: ['Inter', 'sans-serif']
-          }
+        },
+      };
+    </script>
+
+    <!-- Variables Globales y Sistema de Diseño Utilitario / Brutalista -->
+    <style>
+      :root {
+        /* Modo Oscuro (Predeterminado) */
+        --bg-main: #0f111a;
+        --bg-card: rgba(30, 41, 59, 0.90);
+        --bg-card-subtle: rgba(21, 29, 42, 0.88);
+
+        --border-color: #334155;
+        --border-hover: #475569;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --accent-transit: #f59e0b;
+        --accent-transit-hover: #d97706;
+        --accent-text: #0f111a;
+        --alert-soft: #ef4444;
+        --alert-soft-bg: rgba(239, 68, 68, 0.12);
+        --alert-soft-border: rgba(239, 68, 68, 0.35);
+        --card-radius: 12px;
+      }
+
+      html.light {
+        /* Modo Claro */
+        --bg-main: #faf9f6;
+        --bg-card: rgba(255, 255, 255, 0.92);
+        --bg-card-subtle: rgba(241, 245, 249, 0.88);
+
+        --border-color: #e2e8f0;
+        --border-hover: #cbd5e1;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --accent-transit: #f59e0b;
+        --accent-transit-hover: #d97706;
+        --accent-text: #0f111a;
+        --alert-soft: #dc2626;
+        --alert-soft-bg: rgba(220, 38, 38, 0.08);
+        --alert-soft-border: rgba(220, 38, 38, 0.25);
+        --card-radius: 12px;
+      }
+
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-primary);
+        overflow-x: hidden;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        position: relative; /* for pseudo‑element */
+      }
+
+
+      /* En mobile usar scroll para evitar caídas de rendimiento con fixed */
+      @media (max-width: 1023px) {
+        body {
+          background-attachment: scroll;
         }
       }
-    }
-  </script>
 
-  <style>
-    /* Corrección de scroll horizontal y estilos del mapa Leaflet */
-    body {
-      overflow-x: hidden;
-    }
-    .custom-leaflet-marker {
-      background: transparent;
-      border: none;
-    }
-    .leaflet-popup-content-wrapper {
-      border-radius: 1rem;
-      padding: 0.25rem;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-    }
-  </style>
-</head>
+      /* Tarjetas Utilitarias Limpias con efecto Glassmorphism sutil */
+      .transit-card {
+        background-color: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        border-radius: var(--card-radius);
+        transition: all 0.2s ease;
+      }
 
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200 overflow-x-hidden min-h-screen flex flex-col antialiased">
+      .transit-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-hover);
+      }
 
-  <!-- =========================================================================
-       1. HEADER & BARRA DE NAVEGACIÓN (Z-INDEX SUPERIOR Z-[1000])
+      /* Botón de Acción Amarillo Tránsito */
+      .btn-transit {
+        background-color: var(--accent-transit);
+        color: var(--accent-text);
+        font-weight: 700;
+        border-radius: var(--card-radius);
+        transition: all 0.2s ease;
+      }
+
+      .btn-transit:hover {
+        background-color: var(--accent-transit-hover);
+        transform: translateY(-2px);
+      }
+
+      /* Barra de Navegación Utilitaria */
+      .transit-nav {
+        background-color: var(--bg-card);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      /* Scrollbar Utilitaria */
+      .scrollbar-transit::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      .scrollbar-transit::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-transit::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+      .scrollbar-transit::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+
+      /* Leaflet popup styling utilitario y rígido */
+      .custom-leaflet-marker {
+        background: transparent;
+        border: none;
+      }
+      .leaflet-popup-content-wrapper {
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        border-radius: 10px !important;
+        border: 1px solid var(--border-color) !important;
+        box-shadow: none !important;
+      }
+      .leaflet-popup-tip {
+        background: var(--bg-card) !important;
+      }
+
+      /* Cuadrícula técnica sutil de fondo */
+      .transit-grid-bg {
+        background-size: 32px 32px;
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(51, 65, 85, 0.12) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(51, 65, 85, 0.12) 1px,
+            transparent 1px
+          );
+      }
+      html.light .transit-grid-bg {
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(226, 232, 240, 0.8) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(226, 232, 240, 0.8) 1px,
+            transparent 1px
+          );
+      }
+
+      /* Regla de Oro CSS de Leaflet: Altura y ancho explícitos garantizados */
+      #map,
+      #leaflet-map {
+        width: 100%;
+        height: 100%;
+        min-height: 340px;
+      }
+
+      /* Blindaje específico para modales y elementos con atributo hidden nativo */
+      #route-modal.hidden,
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ==========================================================================
+         CONTROL DE DESPLAZAMIENTO Y OFFSET DE NAVEGACIÓN (ANTI-CLIPPING POR NAVBAR)
+         ========================================================================== */
+      html {
+        scroll-padding-top: 5.5rem; /* 88px: 64px del navbar sticky + 24px margen estético */
+      }
+
+      section[id],
+      div[id="map"],
+      div[id="leaflet-map"] {
+        scroll-margin-top: 5.5rem;
+      }
+
+      /* ==========================================================================
+         SISTEMA DE CONTROL DE CURSORES Y SELECCIÓN (ANTI-I-BEAM UI TOTAL)
+         ========================================================================== */
+      /* 1. Base Universal: Flecha normal (cursor: default) y sin selección accidental */
+      *,
+      *::before,
+      *::after {
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* 2. Textos, títulos, subtítulos, párrafos, badges y contenedores */
+      html,
+      body,
+      h1, h2, h3, h4, h5, h6,
+      h1 *, h2 *, h3 *, h4 *, h5 *, h6 *,
+      p, p *,
+      span,
+      strong, b, em, small,
+      div, section, article, main, aside,
+      header, footer, nav,
+      ul, ol, li,
+      table, tr, th, td,
+      label,
+      svg, i,
+      .transit-card, .transit-nav, .badge, .pill {
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* 3. Elementos interactivos y de acción: Manito (cursor: pointer) profunda en elemento e hijos */
+      button,
+      button *,
+      a,
+      a *,
+      [role="button"],
+      [role="button"] *,
+      .cursor-pointer,
+      .cursor-pointer *,
+      .btn-transit,
+      .btn-transit *,
+      .tab-btn,
+      .tab-btn *,
+      .line-card,
+      .line-card *,
+      .view-route-btn,
+      .view-route-btn *,
+      .locate-line-btn,
+      .locate-line-btn *,
+      .toast-close-btn,
+      .toast-close-btn *,
+      select,
+      summary,
+      summary * {
+        cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+      }
+
+      /* 4. Controles del mapa Leaflet interactivos */
+      .leaflet-container,
+      .leaflet-grab {
+        cursor: grab !important;
+      }
+      .leaflet-dragging,
+      .leaflet-dragging .leaflet-grab,
+      .leaflet-dragging .leaflet-container {
+        cursor: grabbing !important;
+      }
+      .leaflet-interactive,
+      .leaflet-marker-icon,
+      .leaflet-control-zoom-in,
+      .leaflet-control-zoom-out,
+      .custom-leaflet-marker,
+      .custom-leaflet-marker * {
+        cursor: pointer !important;
+      }
+
+      /* 5. Sanitización defensiva contra atributos contenteditable */
+      [contenteditable] {
+        outline: none !important;
+      }
+      [contenteditable]:not(input):not(textarea) {
+        user-select: none !important;
+        cursor: default !important;
+      }
+
+      /* 6. ÚNICOS elementos donde se permite escribir y seleccionar texto (Inputs y Textareas) */
+      input[type="text"],
+      input[type="search"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"],
+      input[type="tel"],
+      input[type="url"],
+      textarea {
+        cursor: text !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+      }
+
+      /* ==========================================================================
+         TELEMETRÍA Y COLECTIVOS ANIMADOS EN LEAFLET
+         ========================================================================== */
+      .moving-bus-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 1.8s cubic-bezier(0.25, 1, 0.5, 1);
+      }
+      .moving-bus-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        border: 1.5px solid rgba(255, 255, 255, 0.7);
+        white-space: nowrap;
+        cursor: pointer !important;
+      }
+      .moving-bus-ping {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+        animation: busPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        pointer-events: none;
+      }
+      @keyframes busPing {
+        0% { transform: scale(0.9); opacity: 0.8; }
+        70% { transform: scale(1.6); opacity: 0; }
+        100% { transform: scale(1.6); opacity: 0; }
+      }
+
+      /* Botón de Favorito */
+      .btn-fav {
+        transition: all 0.2s ease;
+      }
+      .btn-fav.is-fav {
+        color: #f59e0b !important;
+      }
+
+      /* Modo Ahorro de Datos (Low-Data) */
+      body.low-data-mode .leaflet-tile-pane {
+        filter: grayscale(100%) opacity(35%);
+      }
+      body.low-data-mode .transit-grid-bg {
+        background-image: none !important;
+      }
+    
+      /* Animaciones E.F.I. */
+      .fade-in-up {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .fade-in-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      @media (prefers-reduced-motion: reduce) {
+        .fade-in-up {
+          transition: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .moving-bus-container, .moving-bus-badge {
+          transition: none !important;
+        }
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+    </style>
+  </head>
+
+  <body
+    class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950 font-sans"
+  >
+    <!-- =========================================================================
+       1. HEADER & BARRA DE NAVEGACIÓN
        ========================================================================= -->
-  <header id="navbar" class="sticky top-0 z-[1000] w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between py-3">
-
-      <!-- Logotipo e Identidad de Marca -->
-      <a href="#inicio" class="flex items-center gap-3 group" aria-label="Ir al inicio de BusRío">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-          <i class="fa-solid fa-bus text-lg"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="font-heading font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">Bus<span class="text-blue-600 dark:text-blue-400">Río</span></span>
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          </div>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide">Monitor Urbano · Río Cuarto</p>
-        </div>
-      </a>
-
-      <!-- Enlaces de Navegación Desktop -->
-      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300" aria-label="Navegación principal">
-        <a href="#inicio" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1">Inicio</a>
-        <a href="#monitor" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 flex items-center gap-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>Monitor en Vivo</span>
-        </a>
-        <a href="#mapa" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1">Mapa</a>
-        <a href="#alertas" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1">Alertas</a>
-        <a href="#trasbordos" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1">Trasbordos</a>
-        <a href="#equipo" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1">Equipo</a>
-      </nav>
-
-      <!-- Acciones: Botón de Tema y Botón Menú Móvil -->
-      <div class="flex items-center gap-3">
-        <!-- Selector Modo Claro / Oscuro -->
-        <button type="button" id="theme-toggle" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold transition-all min-h-[44px]" aria-label="Alternar entre modo claro y modo oscuro">
-          <i id="theme-icon" class="fa-solid fa-moon"></i>
-          <span id="theme-text" class="hidden sm:inline">Modo</span>
-        </button>
-
-        <!-- CTA Rápido Desktop -->
-        <a href="#monitor" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/25 transition-all hover:scale-105 min-h-[44px]">
-          <i class="fa-solid fa-tower-broadcast"></i>
-          <span>Ver Frecuencias</span>
-        </a>
-
-        <!-- Botón Menú Hamburguesa Móvil -->
-        <button type="button" id="mobile-menu-btn" class="md:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-expanded="false" aria-label="Abrir menú de navegación">
-          <i class="fa-solid fa-bars text-lg"></i>
-        </button>
-      </div>
-
-    </div>
-
-    <!-- Menú Desplegable Móvil -->
-    <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-6 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 space-y-2">
-      <a href="#inicio" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-house w-6 text-blue-500"></i> Inicio
-      </a>
-      <a href="#monitor" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-tower-broadcast w-6 text-emerald-500"></i> Monitor en Vivo
-      </a>
-      <a href="#mapa" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-map-location-dot w-6 text-purple-500"></i> Mapa Interactivo
-      </a>
-      <a href="#alertas" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-triangle-exclamation w-6 text-amber-500"></i> Alertas Comunitarias
-      </a>
-      <a href="#trasbordos" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-arrows-split-up-and-left w-6 text-cyan-500"></i> Boleto Combinado
-      </a>
-      <a href="#equipo" class="mobile-nav-link block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-        <i class="fa-solid fa-users w-6 text-indigo-500"></i> Equipo BusRío Tech
-      </a>
-    </div>
-  </header>
-
-  <main class="flex-grow">
-
-    <!-- =========================================================================
-         2. HERO SECTION (PORTADA & BÚSQUEDA PREDICTIVA)
-         ========================================================================= -->
-    <section id="inicio" class="relative py-12 md:py-20 overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-gradient-to-b from-blue-50/50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-
-        <!-- Badge de Contexto Local -->
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-6 shadow-sm">
-          <i class="fa-solid fa-city text-blue-600 dark:text-blue-400"></i>
-          <span>Sistema de Movilidad Urbana · Río Cuarto, Córdoba</span>
-        </div>
-
-        <!-- Título Principal de Impacto -->
-        <h1 class="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight max-w-4xl mx-auto leading-tight">
-          Tu colectivo en tiempo real, <br class="hidden sm:inline">
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-emerald-500 to-teal-400">sin demoras a ciegas.</span>
-        </h1>
-
-        <!-- Subtítulo de Propuesta de Valor -->
-        <p class="mt-4 text-sm sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Monitorea frecuencias, tiempos estimados de llegada y recorridos en paradas críticas como <strong>Plaza Roca</strong>, <strong>Hospital San Antonio de Padua</strong> y el <strong>Campus UNRC</strong>.
-        </p>
-
-        <!-- Buscador Predictivo -->
-        <div class="mt-8 max-w-xl mx-auto">
-          <div class="relative flex items-center bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-blue-500/5 border border-slate-200 dark:border-slate-700 p-1.5 focus-within:ring-2 focus-within:ring-blue-500 transition-all">
-            <i class="fa-solid fa-magnifying-glass text-slate-400 ml-3.5 text-base"></i>
-            <input type="text" id="hero-search-input" placeholder="Buscar línea (ej: Línea 1) o garita..." class="w-full bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none" aria-label="Buscar línea o garita en Río Cuarto">
-            <button type="button" id="hero-search-btn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-blue-500/20 min-h-[44px]">
-              Buscar
-            </button>
-          </div>
-
-          <!-- Sugerencias Rápidas de Garitas Clave -->
-          <div class="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs text-slate-500 dark:text-slate-400">
-            <span class="font-medium">Accesos directos:</span>
-            <a href="#monitor" class="px-2.5 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Plaza Roca</a>
-            <a href="#monitor" class="px-2.5 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Hospital Padua</a>
-            <a href="#monitor" class="px-2.5 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Campus UNRC</a>
-            <a href="#monitor" class="px-2.5 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Banda Norte</a>
-          </div>
-        </div>
-
-        <!-- Métricas Rápidas / Badges de Confianza -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto pt-8 border-t border-slate-200/70 dark:border-slate-800/80">
-          <div class="p-3 text-center">
-            <span class="font-heading font-bold text-2xl text-blue-600 dark:text-blue-400">6 Líneas</span>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Recorridos Urbanos</p>
-          </div>
-          <div class="p-3 text-center">
-            <span class="font-heading font-bold text-2xl text-emerald-500">100% Gratis</span>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">PWA Ciudadana</p>
-          </div>
-          <div class="p-3 text-center">
-            <span class="font-heading font-bold text-2xl text-amber-500">En Vivo</span>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Alertas Comunitarias</p>
-          </div>
-          <div class="p-3 text-center">
-            <span class="font-heading font-bold text-2xl text-purple-500">Low-Data</span>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ahorro 3G para Móvil</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================================================================
-         3. MONITOR DE PARADAS EN TIEMPO REAL (4 ESTADOS UI COMPROBADOS)
-         ========================================================================= -->
-    <section id="monitor" class="py-12 bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <!-- Encabezado de Sección -->
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
-              <i class="fa-solid fa-tower-broadcast animate-pulse"></i>
-              <span>Tablero Interactivo en Vivo</span>
-            </div>
-            <h2 class="font-heading font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white">
-              Monitor de Paradas Críticas
-            </h2>
-            <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Selecciona una garita para filtrar los colectivos próximos a arribar.
-            </p>
-          </div>
-
-          <!-- Buscador Secundario del Tablero -->
-          <div class="w-full md:w-72">
-            <div class="relative">
-              <i class="fa-solid fa-filter absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" id="monitor-search-input" placeholder="Filtrar por línea o destino..." class="w-full bg-slate-100 dark:bg-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]">
-            </div>
-          </div>
-        </div>
-
-        <!-- Selector de Garitas Clave (Stop Tabs) -->
-        <div class="mb-8 overflow-x-auto pb-2 scrollbar-thin">
-          <div id="stop-tabs-container" class="flex items-center gap-2 min-w-max">
-            <!-- Renderizado dinámico desde app.js -->
-          </div>
-        </div>
-
-        <!-- ESTADO 1: ⏳ LOADING SKELETON (Simulación Asíncrona) -->
-        <div id="lines-skeleton" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div class="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse border border-slate-200/50 dark:border-slate-700/50 space-y-4">
-            <div class="flex justify-between items-center"><div class="w-20 h-6 bg-slate-300 dark:bg-slate-700 rounded-lg"></div><div class="w-16 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div></div>
-            <div class="w-3/4 h-5 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-            <div class="w-full h-12 bg-slate-200 dark:bg-slate-700/50 rounded-lg"></div>
-            <div class="w-1/2 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-          </div>
-          <div class="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse border border-slate-200/50 dark:border-slate-700/50 space-y-4">
-            <div class="flex justify-between items-center"><div class="w-20 h-6 bg-slate-300 dark:bg-slate-700 rounded-lg"></div><div class="w-16 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div></div>
-            <div class="w-3/4 h-5 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-            <div class="w-full h-12 bg-slate-200 dark:bg-slate-700/50 rounded-lg"></div>
-            <div class="w-1/2 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-          </div>
-          <div class="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse border border-slate-200/50 dark:border-slate-700/50 space-y-4">
-            <div class="flex justify-between items-center"><div class="w-20 h-6 bg-slate-300 dark:bg-slate-700 rounded-lg"></div><div class="w-16 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div></div>
-            <div class="w-3/4 h-5 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-            <div class="w-full h-12 bg-slate-200 dark:bg-slate-700/50 rounded-lg"></div>
-            <div class="w-1/2 h-4 bg-slate-300 dark:bg-slate-700 rounded-md"></div>
-          </div>
-        </div>
-
-        <!-- ESTADO 2: 📭 EMPTY STATE (Sin Resultados) -->
-        <div id="lines-empty" class="hidden text-center py-16 px-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
-          <div class="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center mx-auto text-slate-500 dark:text-slate-400 text-2xl mb-4">
-            <i class="fa-solid fa-bus-simple"></i>
-          </div>
-          <h3 class="font-heading font-bold text-lg text-slate-800 dark:text-white">No se encontraron líneas para este filtro</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-            Intenta borrar la búsqueda o elegir "Todas las Paradas" para ver los recorridos disponibles en Río Cuarto.
-          </p>
-          <button type="button" id="reset-filters-btn" class="mt-5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-md min-h-[44px]">
-            Restablecer Filtros
-          </button>
-        </div>
-
-        <!-- ESTADO 3: ✅ SUCCESS STATE (Grilla de Tarjetas en Vivo) -->
-        <div id="lines-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Renderizado dinámico desde app.js -->
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================================================================
-         4. MAPA INTERACTIVO DE RECORRIDOS (LEAFLET.JS + OPENSTREETMAP)
-         ========================================================================= -->
-    <section id="mapa" class="py-12 border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-          <div>
-            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-              <i class="fa-solid fa-map-location-dot"></i>
-              <span>Georreferenciación de Recorridos</span>
-            </div>
-            <h2 class="font-heading font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white">
-              Mapa Interactivo de Río Cuarto
-            </h2>
-            <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Explora visualmente los trayectos de las líneas y las garitas principales de la ciudad.
-            </p>
-          </div>
-
-          <!-- Botón de Recentrado del Mapa -->
-          <div class="flex items-center gap-2">
-            <button type="button" id="map-reset-btn" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all min-h-[44px] shadow-sm">
-              <i class="fa-solid fa-crosshairs text-blue-600 dark:text-blue-400"></i>
-              <span>Centrar en Río Cuarto</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Contenedor del Mapa con Esquinas Redondeadas -->
-        <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-800">
-          <div id="leaflet-map" class="w-full h-[400px] sm:h-[480px] z-10"></div>
-
-          <!-- Leyenda Flotante del Mapa -->
-          <div class="absolute bottom-4 left-4 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-xs max-w-xs hidden sm:block">
-            <span class="font-bold text-slate-800 dark:text-slate-100 block mb-1.5">Líneas en el Mapa:</span>
-            <div class="grid grid-cols-2 gap-1.5 text-[11px]">
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-red-500"></span> Línea 1 (UNRC)</span>
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-blue-600"></span> Línea 2 (Hospital)</span>
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-amber-500"></span> Línea 8 (B. Norte)</span>
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-cyan-600"></span> Línea 11 (Alberdi)</span>
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-purple-600"></span> Línea 14 (Desvío)</span>
-              <span class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300"><span class="w-3 h-1.5 rounded-full bg-emerald-500"></span> Línea 5 (Bimaco)</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================================================================
-         5. ALERTAS CIUDADANAS & FORMULARIO (DoD: ERROR & SUCCESS STATES)
-         ========================================================================= -->
-    <section id="alertas" class="py-12 bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <div class="text-center max-w-2xl mx-auto mb-10">
-          <div class="inline-flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-users"></i>
-            <span>Comunidad Colaborativa</span>
-          </div>
-          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white">
-            Alertas Ciudadanas en Vivo
-          </h2>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            El "Waze" del colectivo en Río Cuarto: reporta desvíos, demoras severas o unidades colmadas para ayudar a los demás pasajeros.
-          </p>
-        </div>
-
-        <!-- Botones de Acción Rápida en 1-Clic -->
-        <div class="flex flex-wrap items-center justify-center gap-3 mb-8">
-          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Reporte exprés:</span>
-          <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-medium hover:scale-105 transition-all min-h-[38px]" data-incident="Desvío por Obras o Cortes">
-            <i class="fa-solid fa-road-barrier mr-1"></i> Desvío por Obras
-          </button>
-          <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-medium hover:scale-105 transition-all min-h-[38px]" data-incident="Demora Mayor a 20 Minutos">
-            <i class="fa-solid fa-clock-rotate-left mr-1"></i> Demora de +20 min
-          </button>
-          <button type="button" class="quick-report-btn px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium hover:scale-105 transition-all min-h-[38px]" data-incident="Colectivo Lleno / No Paró">
-            <i class="fa-solid fa-users mr-1"></i> Colectivo Colmado
-          </button>
-        </div>
-
-        <!-- Grid: Feed de Alertas a la Izquierda, Formulario a la Derecha -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          <!-- Feed de Alertas en Vivo (7 Columnas) -->
-          <div class="lg:col-span-7 space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <h3 class="font-heading font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <i class="fa-solid fa-bullhorn text-blue-600 dark:text-blue-400"></i>
-                <span>Reportes Recientes de Pasajeros</span>
-              </h3>
-              <span class="text-xs text-slate-400">Actualizado hace un momento</span>
-            </div>
-
-            <!-- Contenedor dinámico de alertas -->
-            <div id="alerts-feed-container" class="space-y-3">
-              <!-- Renderizado dinámico desde app.js -->
-            </div>
-          </div>
-
-          <!-- Formulario Interactivo de Reporte (5 Columnas) -->
-          <div class="lg:col-span-5 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 shadow-sm">
-            <div class="flex items-center gap-2.5 mb-4">
-              <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm shadow-sm">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </div>
-              <div>
-                <h3 class="font-heading font-bold text-slate-900 dark:text-white text-base">Emitir Alerta Ciudadana</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Tu aviso se comparte inmediatamente con la comunidad.</p>
-              </div>
-            </div>
-
-            <!-- Formulario interactivo sin recarga -->
-            <form id="report-form" class="space-y-4" novalidate>
-              <div>
-                <label for="report-line" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Línea de Colectivo <span class="text-rose-500">*</span>
-                </label>
-                <select id="report-line" required class="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]">
-                  <option value="">-- Selecciona una línea --</option>
-                  <option value="linea-1">Línea 1 (UNRC - Alberdi)</option>
-                  <option value="linea-2">Línea 2 (Hospital - Banda Norte)</option>
-                  <option value="linea-8">Línea 8 (Banda Norte - Centro)</option>
-                  <option value="linea-11">Línea 11 (B° Alberdi - Trasbordo)</option>
-                  <option value="linea-14">Línea 14 (Hospital - UNRC)</option>
-                  <option value="linea-5">Línea 5 (Bimaco - Hipódromo)</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="report-stop" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Parada o Ubicación <span class="text-rose-500">*</span>
-                </label>
-                <select id="report-stop" required class="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]">
-                  <option value="">-- Selecciona la parada --</option>
-                  <option value="plaza-roca">Plaza Roca (Garitas Céntricas)</option>
-                  <option value="hospital-padua">Hospital San Antonio de Padua</option>
-                  <option value="unrc-campus">UNRC (Campus Universitario)</option>
-                  <option value="centro-trasbordo">Centro de Trasbordo Constitución</option>
-                  <option value="banda-norte">Banda Norte (Marcelo T. de Alvear)</option>
-                  <option value="barrio-alberdi">Barrio Alberdi (Bv. Roca)</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="report-type" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Tipo de Incidencia <span class="text-rose-500">*</span>
-                </label>
-                <select id="report-type" required class="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]">
-                  <option value="">-- Elige el motivo --</option>
-                  <option value="Demora Mayor a 20 Minutos">Demora Mayor a 20 Minutos</option>
-                  <option value="Colectivo Lleno / No Paró">Colectivo Lleno / No Paró</option>
-                  <option value="Desvío por Obras o Cortes">Desvío por Obras o Cortes</option>
-                  <option value="Garita Dañada o Sin Luz">Garita Dañada o Sin Luz</option>
-                  <option value="Servicio Normalizado">Servicio Normalizado / Restablecido</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="report-comment" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Observación o Comentario Breve
-                </label>
-                <input type="text" id="report-comment" placeholder="Ej: Mucha gente esperando hacia el campus..." class="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]">
-              </div>
-
-              <div>
-                <label for="report-name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Tu Nombre o Alias <span class="text-slate-400 font-normal">(Opcional)</span>
-                </label>
-                <input type="text" id="report-name" placeholder="Ej: Lucas M." class="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]">
-              </div>
-
-              <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 min-h-[44px]">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span>Enviar Alerta a la Comunidad</span>
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================================================================
-         6. GUÍA DE TRASBORDOS Y ACCESIBILIDAD UNIVERSAL
-         ========================================================================= -->
-    <section id="trasbordos" class="py-12 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <div class="text-center max-w-2xl mx-auto mb-10">
-          <div class="inline-flex items-center gap-2 text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-arrows-split-up-and-left"></i>
-            <span>Normativa Tarifaria Local</span>
-          </div>
-          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white">
-            Boleto Combinado y Accesibilidad
-          </h2>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            Ahorra dinero en tus viajes diarios con la ventana de trasbordo gratuito de 60 minutos en Río Cuarto.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          <!-- Tarjeta de Trasbordo Gratuito -->
-          <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-xl shrink-0">
-              <i class="fa-solid fa-clock"></i>
-            </div>
-            <div>
-              <h3 class="font-heading font-bold text-slate-900 dark:text-white text-base mb-1">Ventana de 60 Minutos</h3>
-              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Al subir al primer colectivo y pasar tu tarjeta, tienes <strong>1 hora completa</strong> para subir a una segunda línea diferente sin que se descuente un nuevo pasaje. Ideal para conectar Banda Norte o Alberdi con el Hospital y la UNRC.
-              </p>
-              <div class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
-                <i class="fa-solid fa-circle-check"></i> Válido todos los días hábiles y fines de semana
-              </div>
-            </div>
-          </div>
-
-          <!-- Tarjeta de Accesibilidad Universal -->
-          <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
-              <i class="fa-solid fa-wheelchair"></i>
-            </div>
-            <div>
-              <h3 class="font-heading font-bold text-slate-900 dark:text-white text-base mb-1">Flota Adaptada (Rampa y Piso Bajo)</h3>
-              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                En BusRío señalizamos con el distintivo verde todas las unidades que cuentan con <strong>rampa automática y piso bajo</strong> para personas con movilidad reducida o cochecitos de bebés.
-              </p>
-              <div class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <i class="fa-solid fa-universal-access"></i> Consulta el icono de silla de ruedas en las tarjetas
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================================================================
-         7. SECCIÓN INSTITUCIONAL & EQUIPO FUNDADOR
-         ========================================================================= -->
-    <section id="equipo" class="py-12 bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <div class="text-center max-w-2xl mx-auto mb-10">
-          <div class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-building"></i>
-            <span>Transparencia y Solidez Técnica</span>
-          </div>
-          <h2 class="font-heading font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white">
-            BusRío Tech S.A.S. & Equipo
-          </h2>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            Desarrollado para la Evaluación Final Integradora (E.F.I.) de Programación II con impacto directo en la comunidad riocuartense.
-          </p>
-        </div>
-
-        <!-- Ficha de la Empresa -->
-        <div class="p-6 rounded-2xl bg-gradient-to-r from-blue-900/10 via-slate-100 to-emerald-900/10 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-800 border border-slate-200 dark:border-slate-700 mb-8">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div>
-              <span class="text-slate-400 block">Razón Social:</span>
-              <strong class="text-slate-800 dark:text-white font-semibold">BusRío Tech S.A.S. (ITS Río Cuarto)</strong>
-            </div>
-            <div>
-              <span class="text-slate-400 block">Sede Operativa:</span>
-              <strong class="text-slate-800 dark:text-white font-semibold">Constitución 645, Piso 3, Of. 302</strong>
-            </div>
-            <div>
-              <span class="text-slate-400 block">Contacto Oficial:</span>
-              <strong class="text-slate-800 dark:text-white font-semibold">contacto@busrio.com.ar</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tarjetas del Equipo Fundador -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-
-          <!-- Miembro 1: Lucas Molina -->
-          <article class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-            <img src="https://ui-avatars.com/api/?name=Lucas+Molina&background=8b5cf6&color=fff&size=128" alt="Foto de perfil de Lucas Molina" class="w-16 h-16 rounded-2xl shrink-0 object-cover shadow-md border-2 border-white dark:border-slate-700">
-            <div>
-              <h3 class="font-heading font-bold text-base text-slate-900 dark:text-white">Lucas Molina</h3>
-              <p class="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2">Co-Founder & Lead Frontend / UI-UX</p>
-              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Estudiante de Software especializado en arquitectura frontend, TailwindCSS y sistemas interactivos. Responsable de la experiencia visual, usabilidad móvil y cartografía de Río Cuarto.
-              </p>
-            </div>
-          </article>
-
-          <!-- Miembro 2: Tadeo -->
-          <article class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-            <img src="https://ui-avatars.com/api/?name=Tadeo&background=10b981&color=fff&size=128" alt="Foto de perfil de Tadeo" class="w-16 h-16 rounded-2xl shrink-0 object-cover shadow-md border-2 border-white dark:border-slate-700">
-            <div>
-              <h3 class="font-heading font-bold text-base text-slate-900 dark:text-white">Tadeo</h3>
-              <p class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-2">Co-Founder & Head of Product / Logic</p>
-              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Especialista en estructuración de datos de transporte urbano, lógica de negocio y georreferenciación. Lidera el modelo de frecuencias, cálculo de tiempos y reglas de trasbordo.
-              </p>
-            </div>
-          </article>
-
-        </div>
-
-      </div>
-    </section>
-
-  </main>
-
-  <!-- =========================================================================
-       8. FOOTER & ENLACES CORPORATIVOS
-       ========================================================================= -->
-  <footer class="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-10 transition-colors">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-
-        <!-- Marca y Resumen -->
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm shadow-md">
+    <header
+      id="navbar"
+      class="sticky top-0 z-[1000] w-full transit-nav transition-colors"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
+        <!-- Logotipo Utilitario -->
+        <a
+          href="#inicio"
+          class="flex items-center gap-3 group"
+          aria-label="Ir al inicio de BusRío"
+        >
+          <div
+            class="w-8 h-8 rounded-lg bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center font-mono font-bold text-sm"
+          >
             <i class="fa-solid fa-bus"></i>
           </div>
           <div>
-            <span class="font-heading font-bold text-lg text-slate-900 dark:text-white">Bus<span class="text-blue-600 dark:text-blue-400">Río</span></span>
-            <p class="text-xs text-slate-400">Tecnologías de Movilidad Río Cuarto S.A.S. © 2026</p>
+            <div class="flex items-center gap-1.5">
+              <span
+                class="font-heading font-bold text-base tracking-tight text-[var(--text-primary)]"
+                >Bus<span class="text-[var(--accent-transit)]">Río</span></span
+              >
+              <span
+                class="w-2 h-2 rounded-full bg-[var(--accent-transit)] animate-pulse"
+              ></span>
+            </div>
+            <p
+              class="text-[10px] font-mono text-[var(--text-muted)] tracking-wider uppercase"
+            >
+              Tránsito Río Cuarto
+            </p>
+          </div>
+        </a>
+
+        <!-- Navegación de Escritorio -->
+        <nav
+          class="hidden md:flex items-center gap-6 text-xs font-semibold text-[var(--text-secondary)]"
+          aria-label="Navegación principal"
+        >
+          <a
+            href="#inicio"
+            class="hover:text-[var(--text-primary)] transition-all flex items-center gap-1.5 text-[var(--accent-transit)]"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full bg-[var(--accent-transit)]"
+            ></span>
+            <span>Inicio (Mapa en Vivo)</span>
+          </a>
+          <a
+            href="#equipo"
+            class="hover:text-[var(--text-primary)] transition-all"
+            >Equipo</a
+          >
+        </nav>
+
+        <!-- Acciones: Low-Data + Tótem + Switch Tema + CTA -->
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <!-- Modo Ahorro de Datos (Low-Data) -->
+          <button
+            type="button"
+            id="low-data-toggle-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Activar Modo Ahorro de Datos (-80% consumo móvil)"
+            aria-label="Alternar modo ahorro de datos"
+          >
+            <i id="low-data-icon" class="fa-solid fa-gauge-simple-high text-xs"></i>
+          </button>
+
+          <!-- Modo Tótem / Pantalla Completa (Salas de Espera) -->
+          <button
+            type="button"
+            id="kiosk-toggle-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Modo Pantalla Tótem (Salas de espera / Pantalla completa)"
+            aria-label="Activar modo pantalla tótem"
+          >
+            <i class="fa-solid fa-tv text-xs"></i>
+          </button>
+
+          <!-- Botón Instalar PWA (Opcional si es compatible) -->
+          <button
+            type="button"
+            id="pwa-install-btn"
+            class="hidden items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+            title="Instalar BusRío en este dispositivo"
+            aria-label="Instalar aplicación BusRío"
+          >
+            <i class="fa-solid fa-download text-xs"></i>
+          </button>
+
+          <!-- Switch Tema -->
+          <button
+            type="button"
+            id="theme-toggle"
+            class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all"
+            aria-label="Alternar entre modo oscuro y claro"
+          >
+            <i id="theme-icon" class="fa-solid fa-moon text-xs"></i>
+          </button>
+          <div class="hidden lg:flex items-center gap-2">
+            <!-- Admin Login Button (visible when not logged in) -->
+            <button
+              type="button"
+              id="admin-login-btn"
+              class="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+              title="Acceso Administrador"
+              aria-label="Abrir login administrador"
+            >
+              <i class="fa-solid fa-user-shield text-xs"></i>
+            </button>
+            <span id="premium-badge" class="px-2 py-1 rounded bg-gray-600 text-white text-xs flex items-center min-h-[44px] hidden md:inline-flex" aria-label="Estado del plan">Gratis <i class="fa-solid fa-crown ml-1"></i></span>
+            <!-- Admin Panel Button (visible after login) -->
+            <button
+              type="button"
+              id="admin-panel-btn"
+              class="hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--accent-transit)] hover:border-[var(--accent-transit)] transition-all"
+              title="Panel Administrador"
+              aria-label="Abrir panel de administración"
+            >
+              <i class="fa-solid fa-tools text-xs"></i>
+            </button>
+          </div>
+
+          <!-- CTA Principal Amarillo Tránsito -->
+          <a
+            href="#monitor"
+            class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold btn-transit"
+          >
+            <i class="fa-solid fa-tower-broadcast text-xs"></i>
+            <span>Ver Frecuencias</span>
+          </a>
+
+          <!-- Botón Menú Móvil -->
+          <button
+            type="button"
+            id="mobile-menu-btn"
+            class="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+            aria-expanded="false"
+            aria-label="Abrir menú"
+          >
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Menú Móvil -->
+      <div
+        id="mobile-menu"
+        class="hidden md:hidden px-4 py-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] space-y-2 text-xs font-medium"
+      >
+        <a
+          href="#inicio"
+          class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)] font-bold text-[var(--accent-transit)]"
+        >
+          <i class="fa-solid fa-map-location-dot mr-2 text-[var(--accent-transit)]"></i>
+          Inicio (Mapa en Vivo)
+        </a>
+        <a
+          href="#equipo"
+          class="mobile-nav-link block px-3 py-2 rounded-lg hover:bg-[var(--border-color)] text-[var(--text-primary)]"
+        >
+          <i class="fa-solid fa-users mr-2 text-[var(--accent-transit)]"></i>
+          Equipo
+        </a>
+        <div class="pt-2 border-t border-[var(--border-color)] flex gap-2">
+          <button
+            type="button"
+            id="mobile-kiosk-btn"
+            class="flex-1 py-2 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--accent-transit)] font-mono text-[11px] font-bold flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-solid fa-tv"></i>
+            <span>Modo Tótem</span>
+          </button>
+          <button
+            type="button"
+            id="mobile-low-data-btn"
+            class="flex-1 py-2 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-mono text-[11px] font-bold flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-solid fa-gauge-simple-high"></i>
+            <span>Low-Data</span>
+          </button>
+        <!-- Botón Admin (mobile) -->
+        <button
+          type="button"
+          id="mobile-admin-btn"
+          class="flex-1 py-2 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--accent-transit)] font-mono text-[11px] font-bold flex items-center justify-center gap-1.5"
+          aria-label="Acceso Administrador"
+        >
+          <i class="fa-solid fa-user-shield text-xs"></i>
+        </button>
+          <span id="premium-badge-mobile" class="ml-2 px-2 py-1 rounded bg-gray-600 text-white text-xs flex items-center min-h-[44px] md:hidden" aria-label="Estado del plan">Gratis <i class="fa-solid fa-crown ml-1"></i></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow">
+      <!-- =========================================================================
+         MONITOR DE COLECTIVOS EN TIEMPO REAL (MAPA FULL-VIEWPORT + PANEL LATERAL / BOTTOM SHEET)
+      ========================================================================= -->
+      <section
+        id="inicio"
+        class="relative w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col lg:flex-row border-b border-[var(--border-color)]"
+      >
+        <!-- Ancla oculta para compatibilidad de navegación interna -->
+        <div id="monitor" class="absolute top-0 left-0 pointer-events-none"></div>
+
+        <!-- PANEL DE LÍNEAS (Panel Lateral en Desktop / Bottom Sheet en Mobile) -->
+        <aside
+          id="monitor-list-col"
+          class="hidden lg:flex flex-col w-full lg:w-[380px] xl:w-[420px] h-auto max-h-[82vh] lg:max-h-none lg:h-full bg-[var(--bg-card)] backdrop-blur-md border-t lg:border-t-0 lg:border-r border-[var(--border-color)] z-[1040] lg:z-20 shrink-0 fixed inset-x-0 bottom-0 lg:static lg:left-auto lg:right-auto lg:bottom-auto rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none transition-all duration-300"
+        >
+          <!-- Barra tirador de arrastre táctil (Solo Mobile) -->
+          <div class="pt-2 pb-1 lg:hidden flex justify-center shrink-0">
+            <span class="w-10 h-1 rounded-full bg-[var(--border-color)]"></span>
+          </div>
+
+          <!-- Cabecera del Panel: Título, Filtro y Garitas -->
+          <div class="px-3 pt-1 pb-3 sm:px-4 sm:pt-2 sm:pb-3 border-b border-[var(--border-color)] bg-[var(--bg-card)] shrink-0 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <h2 class="font-heading font-bold text-xs sm:text-sm text-[var(--text-primary)] uppercase tracking-wide">
+                  Líneas en Servicio
+                </h2>
+                <span
+                  id="lines-counter-badge"
+                  class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--border-color)] text-[var(--text-primary)]"
+                >
+                  6 Líneas
+                </span>
+              </div>
+              <!-- Botón cerrar bottom-sheet en móvil -->
+              <button
+                type="button"
+                id="mobile-close-list-btn"
+                class="lg:hidden p-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-mono font-bold flex items-center gap-1"
+                aria-label="Cerrar panel y ver mapa"
+              >
+                <i class="fa-solid fa-map"></i>
+                <span class="text-[11px]">Ver Mapa</span>
+              </button>
+            </div>
+
+            <!-- Buscador en tiempo real -->
+            <div class="relative w-full">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs"></i>
+              <input
+                type="text"
+                id="monitor-search-input"
+                placeholder="Buscar línea, garita o destino..."
+                class="w-full bg-[var(--bg-main)] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent-transit)] font-mono"
+              />
+            </div>
+
+            <!-- Filtros por Garita (Píldoras adaptables con flex-wrap) -->
+            <div
+              id="stop-tabs-container"
+              class="flex flex-wrap items-center gap-1.5 pt-0.5"
+            >
+              <!-- Renderizado dinámicamente desde app.js -->
+            </div>
+          </div>
+
+          <!-- MIS RECORRIDOS (Premium simulado): bloqueado en plan gratis, lista + alta en Premium -->
+          <div id="premium-routes-section" class="shrink-0 px-3 py-2.5 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-heading font-bold text-xs uppercase tracking-wide text-[var(--text-primary)] flex items-center gap-1.5">
+                <i class="fa-solid fa-route text-[var(--accent-transit)] text-[11px]"></i>
+                Mis recorridos
+              </h3>
+              <button
+                type="button"
+                id="premium-new-route-btn"
+                class="hidden min-h-[44px] px-3 rounded-lg bg-[var(--accent-transit)] text-slate-950 font-mono font-bold text-[11px] items-center gap-1.5 hover:bg-[var(--accent-transit-hover)] transition-all"
+                aria-label="Crear nuevo recorrido"
+              >
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Nuevo recorrido</span>
+              </button>
+            </div>
+            <!-- Estado bloqueado (plan gratis) -->
+            <button
+              type="button"
+              id="premium-routes-locked"
+              class="mt-2 w-full min-h-[44px] px-3 rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:border-[var(--accent-transit)] font-mono text-[11px] flex items-center justify-center gap-2 transition-all"
+              aria-label="Mis recorridos es una función Premium. Ver planes"
+            >
+              <i class="fa-solid fa-lock text-amber-400"></i>
+              <span class="font-bold text-amber-400">Premium</span>
+              <span>· Guardá tus recorridos frecuentes</span>
+            </button>
+            <!-- Lista de recorridos guardados (solo Premium) -->
+            <ul id="premium-routes-list" class="hidden mt-2 space-y-1.5 max-h-36 overflow-y-auto scrollbar-transit" aria-label="Recorridos guardados"></ul>
+          </div>
+
+          <!-- Contenedor Scrollable de Tarjetas -->
+          <div
+            id="lines-scroll-container"
+            class="flex-grow overflow-y-auto p-3 space-y-2.5 scrollbar-transit bg-[var(--bg-card)]/50"
+          >
+            <!-- ESTADO 1: ⏳ LOADING SKELETON -->
+            <div id="lines-skeleton" class="hidden space-y-2.5">
+              <div class="p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] animate-pulse space-y-2">
+                <div class="flex justify-between"><div class="w-16 h-3.5 bg-[var(--border-color)] rounded"></div><div class="w-12 h-3.5 bg-[var(--border-color)] rounded"></div></div>
+                <div class="w-3/4 h-3 bg-[var(--border-color)] rounded"></div>
+              </div>
+              <div class="p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] animate-pulse space-y-2">
+                <div class="flex justify-between"><div class="w-16 h-3.5 bg-[var(--border-color)] rounded"></div><div class="w-12 h-3.5 bg-[var(--border-color)] rounded"></div></div>
+                <div class="w-3/4 h-3 bg-[var(--border-color)] rounded"></div>
+              </div>
+            </div>
+
+            <!-- ESTADO 2: 📭 EMPTY STATE -->
+            <div
+              id="lines-empty"
+              class="hidden h-full flex flex-col items-center justify-center text-center p-6 text-xs"
+            >
+              <div class="w-9 h-9 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] text-sm mb-2 font-mono">
+                <i class="fa-solid fa-ban"></i>
+              </div>
+              <h3 class="font-heading font-bold text-xs text-[var(--text-primary)]">
+                Sin ramales para este filtro
+              </h3>
+              <p class="text-[var(--text-muted)] text-[11px] mt-1 max-w-xs">
+                No hay colectivos asignados a esta búsqueda.
+              </p>
+              <button
+                type="button"
+                id="reset-filters-btn"
+                class="mt-3 px-3 py-1.5 btn-transit text-[11px] font-mono font-bold uppercase"
+              >
+                Restablecer
+              </button>
+            </div>
+
+            <!-- ESTADO 3: ✅ SUCCESS (Tarjetas Utilitarias) -->
+            <div id="lines-grid" class="space-y-2">
+              <!-- Renderizado dinámicamente desde app.js -->
+            </div>
+          </div>
+        </aside>
+
+        <!-- VISOR CARTOGRÁFICO PRINCIPAL (Mapa Leaflet Full-Screen) -->
+        <div
+          id="monitor-map-col"
+          class="flex-1 h-full w-full relative overflow-hidden flex flex-col"
+        >
+          <!-- Barra Utilitaria Superior del Mapa -->
+          <div
+            class="shrink-0 z-[500] flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur font-mono text-xs"
+          >
+            <!-- Lado Izquierdo: Ruta Activa / Título General -->
+            <div class="flex items-center min-w-0 pr-1">
+              <div
+                id="active-route-banner"
+                class="hidden items-center gap-2 text-xs font-mono text-[var(--text-primary)] min-w-0"
+              >
+                <span
+                  id="active-route-badge"
+                  class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-transit)] text-slate-950 shrink-0"
+                  >Línea 1</span
+                >
+                <span
+                  id="active-route-text"
+                  class="truncate font-sans font-semibold text-xs text-[var(--text-primary)]"
+                  >Campus UNRC</span
+                >
+                <button
+                  type="button"
+                  id="clear-route-focus-btn"
+                  class="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5 shrink-0"
+                  title="Mostrar todas las líneas"
+                >
+                  <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+              </div>
+              <div
+                id="default-route-banner"
+                class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)]"
+              >
+                <i class="fa-solid fa-satellite-dish text-[var(--accent-transit)] animate-pulse"></i>
+                <span class="font-bold text-[var(--text-primary)] text-xs">Río Cuarto en Vivo</span>
+                <span class="text-[10px] text-[var(--text-muted)] hidden sm:inline">· 6 Ramales activos</span>
+              </div>
+            </div>
+
+            <!-- Lado Derecho: Controles de Velocidad de Simulación y Recentrado -->
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="hidden sm:flex items-center bg-[var(--bg-main)] rounded-lg border border-[var(--border-color)] overflow-hidden">
+                <button onclick="SimulationEngine.setTimeScale(1)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900 border-r border-[var(--border-color)] transition-colors" title="Velocidad normal">x1</button>
+                <button onclick="SimulationEngine.setTimeScale(5)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900 border-r border-[var(--border-color)] transition-colors" title="Velocidad x5">x5</button>
+                <button onclick="SimulationEngine.setTimeScale(10)" class="px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-[var(--accent-transit)] hover:text-slate-900 transition-colors" title="Velocidad x10">x10</button>
+              </div>
+              <button
+                type="button"
+                id="map-reset-btn"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-xs font-mono font-bold text-[var(--text-primary)] hover:border-[var(--accent-transit)] transition-all"
+                title="Recentrar mapa en Río Cuarto"
+              >
+                <i class="fa-solid fa-crosshairs text-[var(--accent-transit)] text-xs"></i>
+                <span class="hidden sm:inline text-[11px]">Recentrar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Contenedor Leaflet a pantalla completa -->
+          <div class="flex-grow relative w-full h-full">
+            <div id="map" class="w-full h-full z-10"></div>
+          </div>
+
+          <!-- Pie de Mapa: Leyenda Rápida de Líneas -->
+          <div
+            class="shrink-0 px-3 py-1.5 border-t border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur text-[10px] font-mono text-[var(--text-secondary)] flex items-center justify-between gap-2 overflow-x-auto z-[500]"
+          >
+            <span class="font-bold text-[var(--text-primary)] shrink-0">Líneas:</span>
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> L1</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span> L2</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> L8</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-600"></span> L11</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-600"></span> L14</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> L5</span>
+            </div>
           </div>
         </div>
 
-        <!-- Redes Sociales y Canales -->
-        <div class="flex items-center gap-4 text-slate-500 dark:text-slate-400">
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-pink-500 transition-colors" aria-label="Instagram de BusRío">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-blue-600 transition-colors" aria-label="Facebook de BusRío">
-            <i class="fa-brands fa-facebook"></i>
-          </a>
-          <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-red-500 transition-colors" aria-label="YouTube de BusRío">
-            <i class="fa-brands fa-youtube"></i>
-          </a>
-          <a href="mailto:contacto@busrio.com.ar" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-emerald-500 transition-colors" aria-label="Correo de contacto">
-            <i class="fa-solid fa-envelope"></i>
-          </a>
+        <!-- Botón Conmutador Flotante Móvil (Lista / Mapa) -->
+        <div class="lg:hidden fixed bottom-6 inset-x-0 flex justify-center z-[1050]">
+          <button
+            type="button"
+            id="mobile-view-toggle"
+            class="px-4 py-2.5 rounded-full font-mono font-bold text-xs shadow-2xl flex items-center gap-2 border border-slate-700 bg-slate-950/90 backdrop-blur-md text-white hover:border-[var(--accent-transit)] transition-all cursor-pointer"
+          >
+            <i id="mobile-toggle-icon" class="fa-solid fa-list-ul text-[var(--accent-transit)]"></i>
+            <span id="mobile-toggle-text">Ver Líneas (<span id="mobile-line-count">6</span>)</span>
+          </button>
+        </div>
+      </section>
+      <!-- =========================================================================
+         SECCIÓN EQUIPO
+     ========================================================================= -->
+      <section
+        id="equipo"
+        class="py-12 md:py-16 border-b border-[var(--border-color)]"
+      >
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-2xl mb-8">
+            <span
+              class="font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] block mb-1"
+            >
+              Proyecto Integrador
+            </span>
+            <h2
+              class="font-heading font-bold text-2xl sm:text-3xl text-[var(--text-primary)]"
+            >
+              Equipo BusRío Tech S.A.S.
+            </h2>
+            <p class="text-xs text-[var(--text-secondary)] mt-1">
+              Desarrollado para la Evaluación Final Integradora (E.F.I.) de
+              Programación II · ITEC Río Cuarto.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl">
+            <!-- Lucas Molina -->
+            <article
+              class="transit-card p-5 flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div class="flex items-center gap-3 mb-2">
+                  <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Lucas Molina" class="w-12 h-12 rounded-full object-cover border-2 border-[var(--border-color)]">
+                  <div>
+                    <h3
+                      class="font-heading font-bold text-sm text-[var(--text-primary)]"
+                    >
+                      Lucas Molina
+                    </h3>
+                    <span
+                      class="text-[10px] font-mono text-[var(--accent-transit)] uppercase font-bold"
+                      >Co-Founder & Lead UI-UX</span
+                    >
+                  </div>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  Arquitectura frontend, interfaces utilitarias, ergonomía
+                  responsive e integración de cartografía Leaflet.
+                </p>
+              </div>
+              <div
+                class="pt-2.5 border-t border-[var(--border-color)] font-mono text-[10px] text-[var(--text-muted)] uppercase"
+              >
+                Área: Frontend Architecture
+              </div>
+            </article>
+
+            <!-- Tadeo -->
+            <article
+              class="transit-card p-5 flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div class="flex items-center gap-3 mb-2">
+                  <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="Tadeo" class="w-12 h-12 rounded-full object-cover border-2 border-[var(--border-color)]">
+                  <div>
+                    <h3
+                      class="font-heading font-bold text-sm text-[var(--text-primary)]"
+                    >
+                      Tadeo
+                    </h3>
+                    <span
+                      class="text-[10px] font-mono text-[var(--accent-transit)] uppercase font-bold"
+                      >Co-Founder & Head of Product</span
+                    >
+                  </div>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  Modelado de datos de transporte urbano, georreferenciación de
+                  paradas, lógica de frecuencias y régimen tarifario.
+                </p>
+              </div>
+              <div
+                class="pt-2.5 border-t border-[var(--border-color)] font-mono text-[10px] text-[var(--text-muted)] uppercase"
+              >
+                Área: Domain Logic & Data Models
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- =========================================================================
+       9. FOOTER CORPORATIVO PROFUNDO (FONDO OSCURO EN AMBOS MODOS)
+       ========================================================================= -->
+    <footer class="bg-[#0A0D14] text-slate-300 py-12 border-t border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
+          <!-- Columna 1: Marca Corporativa -->
+          <div class="col-span-2 space-y-3">
+            <div class="flex items-center gap-2.5">
+              <div
+                class="w-7 h-7 rounded bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center text-xs font-mono font-bold"
+              >
+                <i class="fa-solid fa-bus"></i>
+              </div>
+              <span class="font-heading font-bold text-base text-white"
+                >Bus<span class="text-[var(--accent-transit)]">Río</span></span
+              >
+            </div>
+            <p
+              class="text-xs text-slate-400 max-w-xs leading-relaxed font-sans"
+            >
+              Plataforma utilitaria de tránsito urbano en tiempo real para Río
+              Cuarto, Córdoba.
+            </p>
+            <div
+              class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-400"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+              ></span>
+              <span>Telemetría Activa</span>
+            </div>
+          </div>
+
+          <!-- Columna 2: Plataforma -->
+          <div>
+            <h4
+              class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3"
+            >
+              Módulos
+            </h4>
+            <ul class="space-y-2 text-xs text-slate-400">
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Centro de Control</a
+                >
+              </li>
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Mapa en Vivo y Ramales</a
+                >
+              </li>
+              <li>
+                <a href="#equipo" class="hover:text-white transition-all"
+                  >Equipo BusRío Tech</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Columna 3: Garitas Clave -->
+          <div>
+            <h4
+              class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3"
+            >
+              Polos Urbanos
+            </h4>
+            <ul class="space-y-2 text-xs text-slate-400">
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Campus UNRC</a
+                >
+              </li>
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Hospital Central</a
+                >
+              </li>
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Plaza Roca</a
+                >
+              </li>
+              <li>
+                <a href="#monitor" class="hover:text-white transition-all"
+                  >Banda Norte</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Columna 4: Legal / Cátedra -->
+          <div>
+            <h4
+              class="font-mono text-xs font-bold uppercase tracking-wider text-white mb-3"
+            >
+              Académico
+            </h4>
+            <ul class="space-y-2 text-xs text-slate-400">
+              <li><span>Programación II · 2026</span></li>
+              <li><span>ITEC Río Cuarto</span></li>
+              <li><span>Gentle-AI SDD</span></li>
+              <li>
+                <a
+                  href="mailto:contacto@busrio.com.ar"
+                  class="text-[var(--accent-transit)] hover:underline font-mono"
+                  >contacto@busrio.com.ar</a
+                >
+              </li>
+            
+              <li class="pt-2"><a href="https://forms.gle/exampLef0rmU1" target="_blank" class="text-emerald-400 hover:underline"><i class="fa-solid fa-clipboard-list mr-1"></i> Formulario de Feedback</a></li>
+              <li class="pt-2 flex gap-3 text-lg">
+                <a href="https://facebook.com/busrio" target="_blank" class="hover:text-blue-500 transition-colors"><i class="fa-brands fa-facebook"></i></a>
+                <a href="https://instagram.com/busrio" target="_blank" class="hover:text-pink-500 transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                <a href="https://youtube.com/busrio" target="_blank" class="hover:text-red-500 transition-colors"><i class="fa-brands fa-youtube"></i></a>
+              </li>
+</ul>
+          </div>
         </div>
 
-        <!-- Crédito de Cátedra -->
-        <div class="text-xs text-slate-400 text-center md:text-right">
-          <p>Proyecto Final E.F.I. · Programación II</p>
-          <p class="text-[11px] text-slate-500 mt-0.5">Construido con Antigravity OS & Gentle-AI SDD</p>
+        <!-- Barra Inferior -->
+        <div
+          class="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500"
+        >
+          <p>BusRío Tech S.A.S. © 2026 · Río Cuarto, Córdoba, Argentina.</p>
+          <div class="flex items-center gap-4 text-sm text-slate-400">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-all"
+              aria-label="Instagram"
+              ><i class="fa-brands fa-instagram"></i
+            ></a>
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-all"
+              aria-label="Facebook"
+              ><i class="fa-brands fa-facebook"></i
+            ></a>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-all"
+              aria-label="GitHub"
+              ><i class="fa-brands fa-github"></i
+            ></a>
+          </div>
         </div>
+      </div>
+    </footer>
 
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="admin-login-title">
+      <div id="modal-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] z-10">
+          <h2 id="admin-login-title" class="font-heading font-bold text-lg mb-4">Acceso Administrador</h2>
+          <form id="admin-login-form" class="space-y-4">
+            <div>
+              <label for="admin-username" class="block text-sm mb-1">Usuario</label>
+              <input id="admin-username" type="text" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-main)] p-2" required>
+            </div>
+            <div>
+              <label for="admin-password" class="block text-sm mb-1">Contraseña</label>
+              <input id="admin-password" type="password" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-main)] p-2" required>
+            </div>
+            <p id="admin-login-error" class="text-red-600 text-sm hidden"></p>
+            <div class="flex justify-end space-x-2">
+              <button type="button" id="admin-login-close" data-admin-login-close class="px-4 py-2 rounded bg-[var(--bg-main)] border border-[var(--border-color)]">Cancelar</button>
+              <button type="submit" class="px-4 py-2 rounded bg-[var(--accent-transit)] text-white">Entrar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </footer>
 
-  <!-- =========================================================================
-       MODAL DE DETALLES DE RECORRIDO (Z-[1050])
-       ========================================================================= -->
-  <div id="route-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-line-title">
-    <!-- Backdrop oscuro con blur -->
-    <div id="modal-backdrop" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"></div>
-
-    <div class="flex min-h-full items-center justify-center p-4">
-      <div class="relative w-full max-w-lg rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-2xl border border-slate-200 dark:border-slate-700 transition-all z-10">
-
-        <!-- Cabecera del Modal -->
-        <div class="flex items-start justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-700">
-          <div class="flex items-center gap-3">
-            <span id="modal-line-number" class="px-3 py-1 rounded-xl text-white font-heading font-bold text-base bg-blue-600">Línea</span>
-            <div>
-              <h3 id="modal-line-title" class="font-heading font-bold text-lg text-slate-900 dark:text-white">Detalle de Línea</h3>
-              <p id="modal-line-direction" class="text-xs text-slate-500 dark:text-slate-400">Destino</p>
-            </div>
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
+      <div id="modal-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-2xl rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] z-10">
+          <div class="flex items-start justify-between mb-4">
+            <h2 id="admin-panel-title" class="font-heading font-bold text-lg">Panel Administrador</h2>
+            <button type="button" id="admin-panel-close" data-admin-panel-close class="px-3 py-2 rounded min-w-[44px] min-h-[44px] bg-[var(--bg-main)] border border-[var(--border-color)]" aria-label="Cerrar panel">✕</button>
           </div>
-          <button type="button" id="modal-close-btn" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors" aria-label="Cerrar ventana">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <!-- Cuerpo del Modal -->
-        <div class="py-4 space-y-4">
-          <!-- Descripción -->
-          <p id="modal-line-desc" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed"></p>
-
-          <!-- Badges de Frecuencia y Estado -->
-          <div class="flex items-center gap-3 text-xs">
-            <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 flex-1">
-              <span class="text-slate-400 block text-[10px]">Frecuencia:</span>
-              <strong id="modal-line-freq" class="text-slate-800 dark:text-slate-100"></strong>
-            </div>
-            <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 flex-1">
-              <span class="text-slate-400 block text-[10px]">Estado de Tránsito:</span>
-              <strong id="modal-line-status" class="text-slate-800 dark:text-slate-100"></strong>
-            </div>
-          </div>
-
-          <!-- Timeline de Paradas -->
-          <div>
-            <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-slate-400 mb-3">
-              Itinerario de Paradas Principales:
-            </h4>
-            <div class="max-h-52 overflow-y-auto pr-2">
-              <ul id="modal-stops-timeline" class="space-y-0">
-                <!-- Paradas generadas desde app.js -->
-              </ul>
-            </div>
+          <section class="mb-4">
+            <h3 class="font-medium mb-2">Estado de Líneas</h3>
+            <div id="admin-lines-list" class="space-y-2"></div>
+          </section>
+          <section class="mb-4">
+            <h3 class="font-medium mb-2">Flota</h3>
+            <div id="admin-fleet-list" class="space-y-2"></div>
+          </section>
+          <section class="mb-4">
+            <h3 class="font-medium mb-2">Velocidad</h3>
+            <div id="admin-speed-group" class="flex items-center space-x-2"></div>
+          </section>
+          <div class="flex justify-end space-x-2">
+            <button id="admin-reset-btn" class="px-4 py-2 rounded min-h-[44px] bg-red-700 text-white border border-red-800">Restablecer</button>
+            <button id="admin-logout-btn" class="px-4 py-2 rounded min-h-[44px] bg-red-600 text-white border border-red-700">Cerrar sesión</button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Footer del Modal con Acción hacia el Mapa -->
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
-          <button type="button" id="modal-map-action-btn" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md flex items-center gap-2 min-h-[44px]">
-            <i class="fa-solid fa-map"></i>
-            <span>Localizar Recorrido en Mapa</span>
-          </button>
-        </div>
-
+    <!-- ========================================================================= -->
+<!-- Premium Plan Modal -->
+<div id="premium-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="premium-modal-title">
+  <div id="premium-modal-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] z-10">
+      <button type="button" id="premium-close-btn" aria-label="Cerrar" class="absolute top-2 right-2 text-xl">✕</button>
+      <h2 id="premium-modal-title" class="font-heading font-bold text-lg mb-4">Elegí tu plan</h2>
+      <p class="mb-2 text-sm">Viajá con más información</p>
+      <table class="w-full mb-4 border border-[var(--border-color)]">
+        <thead>
+          <tr class="bg-[var(--bg-main)]">
+            <th class="px-2 py-1 text-left"></th>
+            <th class="px-2 py-1 text-center">Gratis</th>
+            <th class="px-2 py-1 text-center">Premium</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="px-2 py-1">Alertas de llegada</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Favoritos ilimitados</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Mis recorridos</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="px-2 py-1">Ocupación en vivo</td>
+            <td class="px-2 py-1 text-center">✗</td>
+            <td class="px-2 py-1 text-center">✓</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="text-xs text-gray-500 mb-3">Plan simulado para fines educativos. No se realiza ningún cobro.</p>
+      <div class="flex justify-end space-x-2">
+        <button id="premium-activate-btn" class="px-4 py-2 rounded bg-green-600 text-white border border-green-700">Hacerme Premium</button>
+        <button id="premium-deactivate-btn" class="px-4 py-2 rounded bg-gray-600 text-white border border-gray-700 hidden">Volver al plan gratis</button>
       </div>
     </div>
   </div>
+</div>
+    <!-- MODAL NUEVO RECORRIDO (Premium simulado: Mis recorridos) -->
+    <div id="premium-route-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="premium-route-modal-title" hidden>
+      <div id="premium-route-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] text-[var(--text-primary)] p-5 sm:p-6 border border-[var(--border-color)] z-10 shadow-2xl">
+          <button type="button" id="premium-route-close-btn" class="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-main)]" aria-label="Cerrar formulario de recorrido">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <h2 id="premium-route-modal-title" class="font-heading font-bold text-lg mb-4 pr-10">Nuevo recorrido</h2>
+          <form id="premium-route-form" class="space-y-3" novalidate>
+            <div>
+              <label for="premium-route-name" class="block text-xs font-mono font-bold mb-1">Nombre del recorrido</label>
+              <input id="premium-route-name" type="text" maxlength="40" placeholder="Ej: Casa → Facultad" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Nombre del recorrido">
+            </div>
+            <div>
+              <label for="premium-route-line" class="block text-xs font-mono font-bold mb-1">Línea</label>
+              <select id="premium-route-line" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Línea del recorrido"></select>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="premium-route-origin" class="block text-xs font-mono font-bold mb-1">Parada de origen</label>
+                <select id="premium-route-origin" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Parada de origen"></select>
+              </div>
+              <div>
+                <label for="premium-route-destination" class="block text-xs font-mono font-bold mb-1">Parada de destino</label>
+                <select id="premium-route-destination" class="w-full min-h-[44px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-primary)] px-3 text-sm focus:outline-none focus:border-[var(--accent-transit)]" aria-label="Parada de destino"></select>
+              </div>
+            </div>
+            <p id="premium-route-error" class="hidden text-sm text-red-500 font-medium" role="alert" aria-live="assertive"></p>
+            <div class="flex justify-end gap-2 pt-1">
+              <button type="button" id="premium-route-cancel-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-sm" aria-label="Cancelar">Cancelar</button>
+              <button type="submit" id="premium-route-save-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--accent-transit)] text-slate-950 font-bold text-sm" aria-label="Guardar recorrido">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <!-- MODAL ALERTA DE LLEGADA (Premium simulado: Alertas) -->
+    <div id="premium-alert-modal" class="hidden fixed inset-0 z-[1050] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="premium-alert-title" hidden>
+      <div id="premium-alert-backdrop" class="fixed inset-0 bg-black/75 transition-opacity"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-md rounded-xl bg-[var(--bg-card)] text-[var(--text-primary)] p-5 sm:p-6 border border-[var(--border-color)] z-10 shadow-2xl">
+          <button type="button" id="premium-alert-close-btn" class="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-main)]" aria-label="Cerrar modal de alertas">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-bell"></i>
+            </span>
+            <h2 id="premium-alert-title" class="font-heading font-bold text-lg">Alerta de llegada</h2>
+          </div>
+          <p id="premium-alert-subtitle" class="text-xs text-[var(--text-secondary)] mb-4">
+            Elegí con cuántos minutos de anticipación querés que te avisemos.
+          </p>
 
-  <!-- Contenedor Dinámico de Toasts Flotantes -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-[2000] flex flex-col gap-2 pointer-events-none"></div>
+          <!-- Información de la línea seleccionada -->
+          <div id="premium-alert-line-info" class="mb-4 p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-xs flex items-center justify-between">
+            <div class="min-w-0">
+              <div class="font-bold text-[var(--text-primary)] truncate" id="premium-alert-line-name">Línea</div>
+              <div class="text-[11px] text-[var(--text-muted)] truncate" id="premium-alert-line-stop">Garita</div>
+            </div>
+            <div class="font-mono font-bold text-xs text-[var(--accent-transit)] shrink-0 ml-2" id="premium-alert-line-eta">-- MIN</div>
+          </div>
 
-  <!-- Scripts: Dependencia Leaflet, Datos Mock y Controlador -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
-</body>
+          <!-- Selector de minutos: 2, 5 o 10 -->
+          <div class="mb-4">
+            <label class="block text-xs font-mono font-bold mb-2">Avisarme con anticipación:</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" class="premium-alert-min-opt min-h-[44px] p-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-center transition-all cursor-pointer font-mono text-xs flex flex-col items-center justify-center hover:border-[var(--accent-transit)]" data-minutes="2" aria-label="Avisarme 2 minutos antes">
+                <span class="font-bold text-sm">2 min</span>
+                <span class="text-[10px] text-[var(--text-muted)]">Muy cerca</span>
+              </button>
+              <button type="button" class="premium-alert-min-opt min-h-[44px] p-2 rounded-lg border border-[var(--accent-transit)] bg-[var(--accent-transit)]/10 text-center transition-all cursor-pointer font-mono text-xs flex flex-col items-center justify-center" data-minutes="5" aria-label="Avisarme 5 minutos antes">
+                <span class="font-bold text-sm text-[var(--accent-transit)]">5 min</span>
+                <span class="text-[10px] text-[var(--text-muted)]">Recomendado</span>
+              </button>
+              <button type="button" class="premium-alert-min-opt min-h-[44px] p-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-center transition-all cursor-pointer font-mono text-xs flex flex-col items-center justify-center hover:border-[var(--accent-transit)]" data-minutes="10" aria-label="Avisarme 10 minutos antes">
+                <span class="font-bold text-sm">10 min</span>
+                <span class="text-[10px] text-[var(--text-muted)]">Con tiempo</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" id="premium-alert-cancel-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-sm" aria-label="Cancelar">Cancelar</button>
+            <button type="button" id="premium-alert-save-btn" class="min-h-[44px] px-4 rounded-lg bg-[var(--accent-transit)] text-slate-950 font-bold text-sm" aria-label="Guardar alerta">Guardar alerta</button>
+          </div>
+
+          <!-- Lista de alertas activas gestionables -->
+          <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-heading font-bold text-xs uppercase tracking-wide text-[var(--text-primary)]">Alertas activas</h3>
+              <span id="premium-alerts-badge" class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-muted)]">0</span>
+            </div>
+            <ul id="premium-alerts-list" class="space-y-1.5 max-h-36 overflow-y-auto scrollbar-transit" aria-label="Lista de alertas configuradas">
+              <!-- Renderizado dinámicamente -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+               <!-- MODAL DE DETALLES DE RECORRIDO (DRAWER UTILITARIO) -->
+       
+    <div
+      id="route-modal"
+      hidden
+      class="hidden fixed inset-0 z-[1050] overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-line-title"
+    >
+      <div
+        id="modal-backdrop"
+        class="fixed inset-0 bg-black/75 transition-opacity"
+      ></div>
+
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div
+          class="relative w-full max-w-lg rounded-xl bg-[var(--bg-card)] p-6 border border-[var(--border-color)] transition-all z-10"
+        >
+          <!-- Cabecera del Modal -->
+          <div
+            class="flex items-start justify-between gap-3 pb-3.5 border-b border-[var(--border-color)]"
+          >
+            <div class="flex items-center gap-2.5">
+              <span
+                id="modal-line-number"
+                class="px-2.5 py-1 rounded text-slate-950 font-mono font-bold text-xs bg-[var(--accent-transit)]"
+                >Línea</span
+              >
+              <div>
+                <h3
+                  id="modal-line-title"
+                  class="font-heading font-bold text-sm sm:text-base text-[var(--text-primary)]"
+                >
+                  Detalle de Línea
+                </h3>
+                <p
+                  id="modal-line-direction"
+                  class="text-xs font-mono text-[var(--text-secondary)]"
+                >
+                  Destino
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              id="modal-close-btn"
+              class="w-8 h-8 rounded-lg bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-color)] flex items-center justify-center transition-all"
+              aria-label="Cerrar modal"
+            >
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Contenido del Modal -->
+          <div class="py-4 space-y-3.5">
+            <p
+              id="modal-line-desc"
+              class="text-xs text-[var(--text-secondary)] leading-relaxed"
+            ></p>
+
+            <div class="flex items-center gap-3 text-xs font-mono">
+              <div
+                class="p-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex-1"
+              >
+                <span
+                  class="text-[var(--text-muted)] block text-[10px] uppercase"
+                  >Frecuencia</span
+                >
+                <strong
+                  id="modal-line-freq"
+                  class="text-[var(--text-primary)] font-bold"
+                ></strong>
+              </div>
+              <div
+                class="p-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] flex-1"
+              >
+                <span
+                  class="text-[var(--text-muted)] block text-[10px] uppercase"
+                  >Estado</span
+                >
+                <strong
+                  id="modal-line-status"
+                  class="text-[var(--text-primary)] font-bold"
+                ></strong>
+              </div>
+            </div>
+
+            <div>
+              <h4
+                class="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] mb-2.5"
+              >
+                Itinerario de Garitas:
+              </h4>
+              <div class="max-h-48 overflow-y-auto pr-2 scrollbar-transit">
+                <ul id="modal-stops-timeline" class="space-y-0">
+                  <!-- Paradas generadas desde app.js -->
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Acción Principal del Modal -->
+          <div
+            class="pt-3.5 border-t border-[var(--border-color)] flex justify-end"
+          >
+            <button
+              type="button"
+              id="modal-map-action-btn"
+              class="px-4 py-2.5 btn-transit text-xs font-mono uppercase flex items-center gap-2"
+            >
+              <i class="fa-solid fa-map-location-dot"></i>
+              <span>Trazar en Mapa</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+       MODO TÓTEM / PANTALLA COMPLETA (SALAS DE ESPERA HOSPITAL / UNRC)
+       ========================================================================= -->
+    <div
+      id="kiosk-mode-view"
+      class="hidden fixed inset-0 z-[2500] bg-[#0A0D14] text-white flex flex-col p-4 sm:p-8 overflow-hidden select-none"
+    >
+      <!-- Cabecera del Tótem -->
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-800 shrink-0"
+      >
+        <div class="flex items-center justify-between sm:justify-start gap-3 sm:gap-4">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--accent-transit)] text-slate-950 flex items-center justify-center text-base sm:text-lg font-bold shrink-0"
+            >
+              <i class="fa-solid fa-bus"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="font-heading font-extrabold text-lg sm:text-2xl tracking-tight">
+                  Bus<span class="text-[var(--accent-transit)]">Río</span>
+                </h2>
+                <span
+                  class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider"
+                  >Sala de Espera</span
+                >
+              </div>
+              <p class="text-[11px] sm:text-xs font-mono text-slate-400">
+                Río Cuarto · Monitoreo en Vivo
+              </p>
+            </div>
+          </div>
+
+          <!-- Botón Salir visible en móvil en la fila superior -->
+          <button
+            type="button"
+            class="kiosk-exit-trigger sm:hidden px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-200 active:bg-slate-800 font-mono text-xs font-bold transition-all flex items-center gap-1.5"
+            aria-label="Cerrar sala de espera"
+          >
+            <i class="fa-solid fa-xmark"></i>
+            <span>Cerrar</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-5">
+          <div class="text-left sm:text-right">
+            <div
+              id="kiosk-clock"
+              class="font-mono text-xl sm:text-3xl font-extrabold text-[var(--accent-transit)] tracking-widest"
+            >
+              12:00:00
+            </div>
+            <div
+              id="kiosk-date"
+              class="text-[10px] sm:text-[11px] font-mono text-slate-400 uppercase"
+            >
+              Río Cuarto, CBA
+            </div>
+          </div>
+          <!-- Botón Salir en escritorio -->
+          <button
+            type="button"
+            id="kiosk-close-btn"
+            class="kiosk-exit-trigger hidden sm:flex px-3.5 py-2 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 font-mono text-xs font-bold transition-all items-center gap-2"
+            title="Salir del modo pantalla completa"
+          >
+            <i class="fa-solid fa-compress"></i>
+            <span>Salir (Esc)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablero Central de Arribos en Alta Definición -->
+      <div class="flex-grow py-4 sm:py-6 overflow-y-auto scrollbar-transit">
+        <div class="max-w-6xl mx-auto space-y-3" id="kiosk-lines-board">
+          <!-- Renderizado dinámicamente desde app.js con tipografía gigante -->
+        </div>
+      </div>
+
+      <!-- Tira Inferior de Noticias y Estado -->
+      <div
+        class="pt-3 sm:pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs font-mono text-slate-400 shrink-0"
+      >
+        <div class="flex items-center gap-2 text-center sm:text-left">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+          <span class="text-emerald-400 font-bold uppercase">Telemetría Urbana Activa</span>
+          <span class="text-slate-600 hidden sm:inline">·</span>
+          <span class="hidden sm:inline">Boleto Combinado Municipal: 60 min sin costo extra</span>
+        </div>
+        <div class="text-slate-500 text-[10px] sm:text-xs text-center sm:text-right">
+          Proyectado en Salas de Espera · UNRC · Hospital Central · Plaza Roca
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor Responsive de Toasts -->
+    <div
+      id="toast-container"
+      class="fixed bottom-4 inset-x-4 sm:bottom-6 sm:inset-x-auto sm:right-6 z-[2000] flex flex-col gap-2 pointer-events-none items-center sm:items-end"
+    ></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/simulation.js"></script>
+    <script src="js/app.js"></script>
+  </body>
 </html>
