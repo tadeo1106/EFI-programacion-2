@@ -27,6 +27,7 @@ const ADMIN_STATE_KEY = 'busrio_admin_state';
    ========================================================================== */
 const PREMIUM_STATE_KEY = 'busrio_premium';
 const PREMIUM_ROUTES_KEY = 'busrio_premium_routes';
+const PREMIUM_ALERTS_KEY = 'busrio_premium_alerts';
 const FREE_FAVORITES_LIMIT = 3;
 
 // Única fuente de verdad del plan: la usan initPremium, favoritos y Mis recorridos
@@ -166,6 +167,7 @@ function initPremium() {
 }
 initPremium();
 initPremiumRoutes();
+initPremiumAlerts();
 
   /* ==========================================================================
      💎 MIS RECORRIDOS (PREMIUM SIMULADO)
@@ -433,13 +435,309 @@ initPremiumRoutes();
       renderCards();
     });
     window.addEventListener('storage', (e) => {
-      if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ROUTES_KEY) {
+      if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ROUTES_KEY || e.key === PREMIUM_ALERTS_KEY) {
         updateRoutesUI();
-        if (e.key === PREMIUM_STATE_KEY) renderCards();
+        if (e.key === PREMIUM_STATE_KEY || e.key === PREMIUM_ALERTS_KEY) renderCards();
       }
     });
 
     updateRoutesUI();
+  }
+
+  /* ==========================================================================
+     🔔 ALERTAS DE LLEGADA (PREMIUM SIMULADO)
+     Plan gratis: botón bloqueado con candado que abre #premium-modal.
+     Premium: configuración de anticipación (2, 5 o 10 min), notificación
+     y aviso en pantalla sin repetir mientras el ETA siga bajo el umbral.
+     ========================================================================== */
+  function loadAlerts() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PREMIUM_ALERTS_KEY) || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveAlerts(alerts) {
+    localStorage.setItem(PREMIUM_ALERTS_KEY, JSON.stringify(alerts));
+  }
+
+  function getAlertForLine(lineId) {
+    const alerts = loadAlerts();
+    return alerts.find(a => (a.lineId === lineId || a.line === lineId)) || null;
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      showToast('Tu navegador no soporta notificaciones de sistema. Te avisaremos en pantalla.', 'info');
+      return false;
+    }
+    if (Notification.permission === 'granted') {
+      return true;
+    }
+    if (Notification.permission === 'denied') {
+      showToast('Notificaciones denegadas en el navegador: te avisaremos con alertas en pantalla.', 'info');
+      return false;
+    }
+    try {
+      const result = await Notification.requestPermission();
+      if (result === 'granted') {
+        return true;
+      } else {
+        showToast('Permiso de notificaciones no otorgado: te avisaremos con alertas en pantalla.', 'info');
+        return false;
+      }
+    } catch (e) {
+      showToast('Te avisaremos con alertas en pantalla.', 'info');
+      return false;
+    }
+  }
+
+  // Comprobación y disparo de alertas en cada tick de ETA
+  function checkAlerts(line) {
+    if (!isPremium()) return; // Conservadas pero inactivas en plan gratis
+    const alerts = loadAlerts();
+    if (!alerts || alerts.length === 0) return;
+
+    const currentEta = getDisplayEta(line);
+    let changed = false;
+
+    alerts.forEach(alert => {
+      if (alert.lineId === line.id || alert.line === line.id) {
+        const threshold = Number(alert.minutes);
+        if (currentEta <= threshold) {
+          if (!alert.triggered) {
+            alert.triggered = true;
+            changed = true;
+            const msg = `${line.number} llega en ${currentEta} min a ${line.stopName}`;
+            showToast(msg, 'info');
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(msg, {
+                  body: `Tu colectivo está próximo a la garita ${line.stopName}.`,
+                  icon: 'icons/icon.svg',
+                  tag: `busrio-alert-${line.id}`
+                });
+              } catch (e) {
+                // Manejo seguro ante restricciones de contexto de Notification
+              }
+            }
+          }
+        } else {
+          // El ETA volvió a subir por encima del umbral -> rearmar alerta para la próxima llegada
+          if (alert.triggered) {
+            alert.triggered = false;
+            changed = true;
+          }
+        }
+      }
+    });
+
+    if (changed) {
+      saveAlerts(alerts);
+    }
+  }
+
+  function initPremiumAlerts() {
+    const modal = document.getElementById('premium-alert-modal');
+    const backdrop = document.getElementById('premium-alert-backdrop');
+    const closeBtn = document.getElementById('premium-alert-close-btn');
+    const cancelBtn = document.getElementById('premium-alert-cancel-btn');
+    const saveBtn = document.getElementById('premium-alert-save-btn');
+    const listEl = document.getElementById('premium-alerts-list');
+    const badgeEl = document.getElementById('premium-alerts-badge');
+    const lineNameEl = document.getElementById('premium-alert-line-name');
+    const lineStopEl = document.getElementById('premium-alert-line-stop');
+    const lineEtaEl = document.getElementById('premium-alert-line-eta');
+    const minuteBtns = document.querySelectorAll('.premium-alert-min-opt');
+
+    let selectedLineId = null;
+    let selectedMinutes = 5;
+    let alertLastFocus = null;
+
+    function isModalOpen() {
+      return !!modal && !modal.classList.contains('hidden');
+    }
+
+    function setSelectedMinutes(mins) {
+      selectedMinutes = Number(mins);
+      minuteBtns.forEach(btn => {
+        const m = Number(btn.getAttribute('data-minutes'));
+        const isSelected = m === selectedMinutes;
+        if (isSelected) {
+          btn.className = 'premium-alert-min-opt min-h-[44px] p-2 rounded-lg border border-[var(--accent-transit)] bg-[var(--accent-transit)]/10 text-center transition-all cursor-pointer font-mono text-xs flex flex-col items-center justify-center';
+          const span = btn.querySelector('span:first-child');
+          if (span) span.className = 'font-bold text-sm text-[var(--accent-transit)]';
+        } else {
+          btn.className = 'premium-alert-min-opt min-h-[44px] p-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-center transition-all cursor-pointer font-mono text-xs flex flex-col items-center justify-center hover:border-[var(--accent-transit)]';
+          const span = btn.querySelector('span:first-child');
+          if (span) span.className = 'font-bold text-sm';
+        }
+      });
+    }
+
+    minuteBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setSelectedMinutes(btn.getAttribute('data-minutes'));
+      });
+    });
+
+    function renderAlertsList() {
+      if (!listEl) return;
+      const alerts = loadAlerts();
+      if (badgeEl) badgeEl.textContent = `${alerts.length} activa${alerts.length === 1 ? '' : 's'}`;
+      listEl.innerHTML = '';
+
+      if (alerts.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'text-[11px] font-mono text-[var(--text-muted)] py-2 text-center';
+        empty.textContent = 'No tenés alertas configuradas.';
+        listEl.appendChild(empty);
+        return;
+      }
+
+      alerts.forEach(alert => {
+        const line = BUSRIO_DATA.lines.find(l => l.id === (alert.lineId || alert.line));
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between gap-2 p-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] text-xs';
+
+        const info = document.createElement('div');
+        info.className = 'min-w-0';
+        const title = document.createElement('div');
+        title.className = 'font-bold text-[var(--text-primary)] truncate flex items-center gap-1.5';
+        title.innerHTML = `<i class="fa-solid fa-bell text-amber-500 text-[10px]"></i><span>${line ? line.number : 'Línea'}</span> <span class="text-[10px] font-mono px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded font-semibold">${alert.minutes} min</span>`;
+        const desc = document.createElement('div');
+        desc.className = 'text-[10px] text-[var(--text-muted)] truncate';
+        desc.textContent = line ? `Garita: ${line.stopName}` : '';
+        info.appendChild(title);
+        info.appendChild(desc);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-red-500 transition-colors shrink-0 cursor-pointer';
+        delBtn.setAttribute('aria-label', `Eliminar alerta de ${line ? line.number : 'línea'}`);
+        delBtn.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+        delBtn.addEventListener('click', () => {
+          const remaining = loadAlerts().filter(a => (a.lineId || a.line) !== (alert.lineId || alert.line));
+          saveAlerts(remaining);
+          renderAlertsList();
+          renderCards();
+          showToast(`Alerta para ${line ? line.number : 'línea'} eliminada`, 'info');
+        });
+
+        li.appendChild(info);
+        li.appendChild(delBtn);
+        listEl.appendChild(li);
+      });
+    }
+
+    function openAlertModal(lineId, triggerEl) {
+      if (!modal) return;
+      if (!isPremium()) {
+        document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: triggerEl } }));
+        return;
+      }
+
+      selectedLineId = lineId;
+      alertLastFocus = triggerEl || document.activeElement;
+
+      const line = BUSRIO_DATA.lines.find(l => l.id === lineId);
+      if (line) {
+        if (lineNameEl) lineNameEl.textContent = `${line.number} — ${line.name}`;
+        if (lineStopEl) lineStopEl.textContent = `Garita: ${line.stopName}`;
+        if (lineEtaEl) lineEtaEl.textContent = `${getDisplayEta(line)} MIN`;
+      }
+
+      const existing = getAlertForLine(lineId);
+      setSelectedMinutes(existing ? existing.minutes : 5);
+      renderAlertsList();
+
+      modal.classList.remove('hidden');
+      modal.removeAttribute('hidden');
+      document.body.classList.add('overflow-hidden');
+      setTimeout(() => {
+        const activeOpt = modal.querySelector('.premium-alert-min-opt');
+        if (activeOpt) activeOpt.focus();
+      }, 30);
+    }
+
+    function closeAlertModal() {
+      if (!isModalOpen()) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('hidden', '');
+      document.body.classList.remove('overflow-hidden');
+      if (alertLastFocus && typeof alertLastFocus.focus === 'function') {
+        alertLastFocus.focus();
+      }
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeAlertModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeAlertModal);
+    if (backdrop) backdrop.addEventListener('click', closeAlertModal);
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        if (!selectedLineId) return;
+        const line = BUSRIO_DATA.lines.find(l => l.id === selectedLineId);
+        if (!line) return;
+
+        // Pedir permiso de notificaciones solo al crear alerta
+        await requestNotificationPermission();
+
+        const alerts = loadAlerts().filter(a => (a.lineId || a.line) !== selectedLineId);
+        alerts.push({
+          lineId: selectedLineId,
+          line: selectedLineId,
+          minutes: Number(selectedMinutes),
+          triggered: false
+        });
+        saveAlerts(alerts);
+
+        // Chequeo inmediato por si el colectivo ya está en el umbral
+        checkAlerts(line);
+
+        renderCards();
+        renderAlertsList();
+        closeAlertModal();
+        showToast(`Alerta activada para ${line.number} (${selectedMinutes} min antes)`, 'success');
+      });
+    }
+
+    // Teclado: Escape y Tab Trap
+    window.addEventListener('keydown', (e) => {
+      if (!isModalOpen()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeAlertModal();
+      } else if (e.key === 'Tab') {
+        const focusables = Array.from(
+          modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter(el => el.offsetParent !== null);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    // Escuchar apertura desde tarjetas
+    document.addEventListener('busrio:open-alert-modal', (e) => {
+      if (e.detail && e.detail.lineId) {
+        openAlertModal(e.detail.lineId, e.detail.trigger);
+      }
+    });
+
+    // Si se cambia de plan, cerrar modal si no es premium y actualizar lista
+    document.addEventListener('busrio:plan-change', () => {
+      if (!isPremium()) closeAlertModal();
+    });
   }
   /* ==========================================================================
      UTILIDADES DE NAVEGACIÓN Y ERGONOMÍA (OFFSET NAVBAR STICKY & SANITIZACIÓN)
@@ -1147,6 +1445,7 @@ initPremiumRoutes();
 
     // Ocupación en vivo (Premium) vs Estado bloqueado con candado (Plan Gratis)
     const hasPremium = isPremium();
+    const activeAlert = hasPremium ? getAlertForLine(line.id) : null;
     const occupancy = (window.SimulationEngine && typeof window.SimulationEngine.getOccupancy === 'function')
       ? window.SimulationEngine.getOccupancy(line.id)
       : 'Medio';
@@ -1175,7 +1474,7 @@ initPremiumRoutes();
     }
 
     article.innerHTML = `
-      <!-- Fila 1: Línea Badge + Nombre + Favorito + ETA Monospace -->
+      <!-- Fila 1: Línea Badge + Nombre + Alerta Activa + Favorito + ETA Monospace -->
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="inline-flex items-center justify-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] shrink-0">
@@ -1190,6 +1489,11 @@ initPremiumRoutes();
         </div>
 
         <div class="flex items-center gap-1.5 shrink-0">
+          ${activeAlert ? `
+            <span class="text-amber-500 text-xs px-0.5" title="Alerta activa: ${activeAlert.minutes} min antes">
+              <i class="fa-solid fa-bell animate-pulse"></i>
+            </span>
+          ` : ''}
           <button type="button" class="btn-fav p-1 rounded hover:bg-[var(--bg-main)] ${isFav ? 'is-fav text-amber-400' : 'text-[var(--text-muted)] hover:text-amber-400'}" data-fav-line="${line.id}" title="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}">
             <i class="${isFav ? 'fa-solid text-amber-400' : 'fa-regular'} fa-star text-xs"></i>
           </button>
@@ -1221,6 +1525,22 @@ initPremiumRoutes();
         </div>
 
         <div class="flex items-center gap-1.5">
+          ${hasPremium ? (
+            activeAlert
+              ? `<button type="button" id="premium-alert-btn-${line.id}" class="premium-alert-btn px-2 py-1 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-bold transition-all hover:bg-amber-500/25 flex items-center gap-1 cursor-pointer" aria-label="Alerta activa para ${line.number} (${activeAlert.minutes} min). Cambiar alerta" title="Alerta activa: ${activeAlert.minutes} min antes" data-line-id="${line.id}">
+                  <i class="fa-solid fa-bell text-[10px] text-amber-500"></i>
+                  <span>${activeAlert.minutes}m</span>
+                </button>`
+              : `<button type="button" id="premium-alert-btn-${line.id}" class="premium-alert-btn px-2 py-1 rounded bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] transition-all hover:border-[var(--border-hover)] flex items-center gap-1 cursor-pointer" aria-label="Avisarme cuando llegue la ${line.number}" title="Avisarme cuando llegue" data-line-id="${line.id}">
+                  <i class="fa-regular fa-bell text-[10px]"></i>
+                  <span>Avisarme</span>
+                </button>`
+          ) : `
+            <button type="button" id="premium-alert-lock-${line.id}" class="premium-alert-lock-btn px-2 py-1 rounded bg-[var(--bg-main)] text-amber-600 dark:text-amber-400 border border-dashed border-amber-500/40 hover:bg-amber-500/10 transition-all flex items-center gap-1 cursor-pointer" aria-label="Alertas de llegada requiere plan Premium. Ver planes" title="Alertas de llegada: disponible en Premium" data-line-id="${line.id}">
+              <i class="fa-solid fa-lock text-[9px]"></i>
+              <span>Premium</span>
+            </button>
+          `}
           <button type="button" class="locate-line-btn px-2.5 py-1 rounded bg-[var(--accent-transit)] text-slate-950 font-bold transition-all hover:bg-[var(--accent-transit-hover)] flex items-center gap-1" data-line-id="${line.id}">
             <i class="fa-solid fa-map text-[10px]"></i>
             <span>Trazar</span>
@@ -1251,6 +1571,26 @@ initPremiumRoutes();
       });
     }
 
+    // Clic en botón de alerta Premium (abrir modal de alertas)
+    const alertBtn = article.querySelector('.premium-alert-btn');
+    if (alertBtn) {
+      alertBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.dispatchEvent(new CustomEvent('busrio:open-alert-modal', {
+          detail: { lineId: line.id, trigger: alertBtn }
+        }));
+      });
+    }
+
+    // Clic en candado de alerta para abrir modal de planes Premium
+    const alertLockBtn = article.querySelector('.premium-alert-lock-btn');
+    if (alertLockBtn) {
+      alertLockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.dispatchEvent(new CustomEvent('busrio:open-premium', { detail: { trigger: alertLockBtn } }));
+      });
+    }
+
     // Clic en toda la tarjeta selecciona la línea en el mapa
     article.addEventListener('click', (e) => {
       if (e.target.closest('.view-route-btn')) {
@@ -1261,6 +1601,9 @@ initPremiumRoutes();
         return;
       }
       if (e.target.closest('.premium-occupancy-lock-btn')) {
+        return;
+      }
+      if (e.target.closest('.premium-alert-btn') || e.target.closest('.premium-alert-lock-btn')) {
         return;
       }
       focusLineOnMap(line, true);
@@ -2192,6 +2535,7 @@ initPremiumRoutes();
         } else {
           line.etaMinutes = Math.floor(Math.random() * 8) + 5;
         }
+        checkAlerts(line);
       });
       if (!state.searchQuery && state.selectedStop === 'all') {
         renderCards();
