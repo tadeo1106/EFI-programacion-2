@@ -928,56 +928,5 @@ const BUSRIO_DATA = {
         [-33.15026, -64.35208]
       ]
     }
-  ],
-
-  // Alertas Comunitarias Ciudadanas
-  alerts: [
-    {
-      id: "alt-1",
-      type: "danger",
-      title: "Desvío por Obras en Puente Carretero",
-      line: "Línea 14",
-      stop: "Puente Carretero / Hospital",
-      author: "Comunidad Río Cuarto",
-      time: "Hace 12 minutos",
-      description: "Tránsito interrumpido por bacheo preventivo. Las unidades desvían por Puente Colgante Bicentenario."
-    },
-    {
-      id: "alt-2",
-      type: "warning",
-      title: "Garita Plaza Roca Colmada",
-      line: "Línea 8",
-      stop: "Plaza Roca (Sobremonte)",
-      author: "Pasajero Verificado (Lucas)",
-      time: "Hace 25 minutos",
-      description: "Fila de más de 40 personas esperando hacia Banda Norte. Tiempo de espera mayor a 15 minutos."
-    },
-    {
-      id: "alt-3",
-      type: "success",
-      title: "Servicio Normalizado en Campus UNRC",
-      line: "Línea 1",
-      stop: "UNRC Campus",
-      author: "Centro de Estudiantes",
-      time: "Hace 40 minutos",
-      description: "Frecuencia regular cada 10 minutos para regreso estudiantil hacia Plaza Roca."
-    }
-  ],
-
-  // Matriz de Trasbordos y Beneficios
-  transfers: {
-    rule: "El boleto combinado permite conectar dos líneas diferentes abonando un único pasaje, siempre que la combinación se realice dentro de los 60 minutos desde el primer timbrado.",
-    hubs: [
-      {
-        name: "Nodo Plaza Roca - Garita Central",
-        connections: "Líneas 1, 2, 5, 8 y 11",
-        benefit: "Conexión directa entre Banda Norte, Alberdi y Campus UNRC sin costo extra."
-      },
-      {
-        name: "Centro de Trasbordo Constitución 645",
-        connections: "Líneas 1, 2 y 11",
-        benefit: "Parada techada con terminal de recarga y pantallas informativas del monitor BusRío."
-      }
-    ]
-  }
+  ]
 };

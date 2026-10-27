@@ -178,10 +178,11 @@ const SimulationEngine = (function() {
         totalLength: totalLength,
         currentDistance: startDist,
         direction: 1, // 1: ida, -1: vuelta
-        state: line.status === 'danger' ? 'Demorado' : 'En servicio',
+        state: statusToBusState(line.status),
         speedKmH: line.speed || 30, // km/h
         marker: null,
-        following: false
+        following: false,
+        paused: false // Controlado desde el Panel de Administración
       };
 
       // Crear el marcador
@@ -209,6 +210,8 @@ const SimulationEngine = (function() {
            Cargando telemetría...
         </div>
       `);
+
+      applyMarkerIndicator(buses[line.id]);
     });
 
     // Iniciar loop a 60fps aprox (16ms)
@@ -229,6 +232,13 @@ const SimulationEngine = (function() {
     const deltaHours = (deltaTimeMs / 1000) / 3600;
 
     Object.values(buses).forEach(bus => {
+      // Unidad pausada por el administrador: no avanza, pero mantiene popup y seguimiento
+      if (bus.paused) {
+        if (bus.marker.isPopupOpen()) updatePopup(bus);
+        if (bus.following && mapRef) mapRef.panTo(bus.marker.getLatLng(), { animate: false });
+        return;
+      }
+
       if(bus.state === 'Demorado') {
          bus.speedKmH = bus.lineObj.speed * 0.5; // Va a la mitad
       } else {
@@ -285,6 +295,12 @@ const SimulationEngine = (function() {
   function updatePopup(bus) {
     const popupEl = document.getElementById(`popup-${bus.id}`);
     if (!popupEl) return;
+
+    const stateText = bus.paused ? 'Pausado' : bus.state;
+    const stateClass = bus.paused ? 'text-slate-400'
+      : bus.state === 'Demorado' ? 'text-amber-500'
+      : bus.state === 'Desviado' ? 'text-rose-500'
+      : 'text-emerald-500';
     
     popupEl.innerHTML = `
       <div class="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-1 mb-2">
@@ -292,8 +308,8 @@ const SimulationEngine = (function() {
         <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[9px] uppercase tracking-wider">EN VIVO</span>
       </div>
       <div class="text-[11px] text-[var(--text-secondary)] space-y-1 font-sans">
-        <div class="flex justify-between"><span>Estado:</span> <strong class="${bus.state === 'Demorado' ? 'text-amber-500' : 'text-emerald-500'}">${bus.state}</strong></div>
-        <div class="flex justify-between"><span>Vel. Sim.:</span> <strong class="font-mono">${(bus.speedKmH * timeScale).toFixed(1)} km/h</strong></div>
+        <div class="flex justify-between"><span>Estado:</span> <strong class="${stateClass}">${stateText}</strong></div>
+        <div class="flex justify-between"><span>Vel. Sim.:</span> <strong class="font-mono">${bus.paused ? '0.0' : (bus.speedKmH * timeScale).toFixed(1)} km/h</strong></div>
         <div class="flex justify-between"><span>Sentido:</span> <strong class="text-[var(--text-primary)]">${bus.direction === 1 ? 'Ida' : 'Vuelta'}</strong></div>
         <div class="flex justify-between"><span>Ocupación:</span> <strong class="text-[var(--text-primary)]">${bus.lineObj.capacity || 'Media'}</strong></div>
       </div>
@@ -321,11 +337,61 @@ const SimulationEngine = (function() {
   
   function getTimeScale() { return timeScale; }
 
+  /* --- API de Administración (Panel Admin simulado) --- */
+
+  // Traduce el estado de la línea (data.js) al estado operativo del colectivo
+  function statusToBusState(status) {
+    if (status === 'warning') return 'Demorado';
+    if (status === 'danger') return 'Desviado';
+    return 'En servicio';
+  }
+
+  // Indicador visual sobre el marcador: anillo ámbar (demora), rosa (desvío), atenuado (pausa)
+  function applyMarkerIndicator(bus) {
+    if (!bus || !bus.marker) return;
+    const el = bus.marker.getElement();
+    if (!el) return;
+    const container = el.querySelector('.moving-bus-container');
+    const badge = el.querySelector('.moving-bus-badge');
+    const ping = el.querySelector('.moving-bus-ping');
+
+    const ring = bus.state === 'Demorado' ? '0 0 0 2px #f59e0b, 0 2px 4px rgba(0,0,0,0.3)'
+      : bus.state === 'Desviado' ? '0 0 0 2px #f43f5e, 0 2px 4px rgba(0,0,0,0.3)'
+      : '0 2px 4px rgba(0,0,0,0.3)';
+
+    if (badge) badge.style.boxShadow = ring;
+    if (ping) ping.style.display = bus.paused ? 'none' : '';
+    if (container) container.style.opacity = bus.paused ? '0.55' : '1';
+  }
+
+  function setLineStatus(lineId, status) {
+    const bus = buses[lineId];
+    if (!bus) return;
+    bus.state = statusToBusState(status);
+    applyMarkerIndicator(bus);
+    if (bus.marker.isPopupOpen()) updatePopup(bus);
+  }
+
+  function setBusPaused(lineId, paused) {
+    const bus = buses[lineId];
+    if (!bus) return;
+    bus.paused = !!paused;
+    applyMarkerIndicator(bus);
+    if (bus.marker.isPopupOpen()) updatePopup(bus);
+  }
+
+  function isBusPaused(lineId) {
+    return !!(buses[lineId] && buses[lineId].paused);
+  }
+
   return {
     init,
     setTimeScale,
     getTimeScale,
-    toggleFollow
+    toggleFollow,
+    setLineStatus,
+    setBusPaused,
+    isBusPaused
   };
 })();
 

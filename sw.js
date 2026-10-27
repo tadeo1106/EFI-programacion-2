@@ -4,7 +4,7 @@
  * Requisito E.F.I.: Network-First real con caché versionado.
  */
 
-const CACHE_NAME = 'busrio-cache-v2.2';
+const CACHE_NAME = 'busrio-cache-v2.6';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,8 @@ const STATIC_ASSETS = [
   './js/data.js',
   './js/simulation.js',
   './js/app.js',
-  './icons/icon.svg'
+  './icons/icon.svg',
+  './Pegado%2024:10:2026%20a%20la(s)%2020.02.40.png'
 ];
 
 self.addEventListener('install', (event) => {
